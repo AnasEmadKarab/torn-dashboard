@@ -1,0 +1,73 @@
+// components/TravelRadar.tsx
+"use client";
+import { useState, useEffect, useRef } from "react";
+import AirplaneProgressBar from "./AirplaneProgressBar";
+
+interface TravelData {
+  destination: string;
+  method: string;
+  departed_at: number;
+  arrival_at: number;
+  time_left: number;
+}
+
+export default function TravelRadar({ travel }: { travel: TravelData }) {
+  const [now, setNow] = useState(Date.now() / 1000);
+  const alarmFired = useRef(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now() / 1000), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+
+const isTraveling = travel?.time_left > 0; // هيك رح يورجيك الطيارة سواء رايح أو راجع
+
+  if (!isTraveling) {
+    return (
+      <div className="glass-panel p-5 text-gray-400">
+        No active travel. Currently in Torn.
+      </div>
+    );
+  }
+
+  const total = travel.arrival_at - travel.departed_at;
+  const elapsed = now - travel.departed_at;
+  const remaining = Math.max(0, travel.arrival_at - now);
+  const pct = Math.min(100, Math.max(0, (elapsed / total) * 100));
+
+  const arrivalLocal = new Date(travel.arrival_at * 1000).toLocaleTimeString();
+
+  useEffect(() => {
+    if (remaining <= 300 && remaining > 0 && !alarmFired.current) {
+      alarmFired.current = true;
+      audioRef.current?.play().catch(() => {});
+    }
+  }, [remaining]);
+
+  const hours = Math.floor(remaining / 3600);
+  const mins = Math.floor((remaining % 3600) / 60);
+  const secs = Math.floor(remaining % 60);
+  const warning = remaining <= 300;
+
+  return (
+    <div className={`glass-panel p-5 ${warning ? "glow-pink flash-alert" : "glow-cyan"}`}>
+      <h2 className="text-lg font-semibold mb-2 text-cyan-300">Travel Radar</h2>
+      <p className="text-gray-300">
+        Destination: <span className="font-semibold text-white">{travel.destination}</span>
+        {" "}via <span className="text-gray-400">{travel.method}</span>
+      </p>
+      <p className="text-gray-300">Local ETA: <span className="font-mono">{arrivalLocal}</span></p>
+      <p className="text-2xl font-bold mt-1 font-mono">
+        {hours > 0 && `${hours}h `}{mins}m {secs}s remaining
+      </p>
+
+      <AirplaneProgressBar progressPct={pct} />
+
+      {warning && <p className="text-pink-400 font-semibold mt-2">🛬 Arriving soon — get ready!</p>}
+
+      <audio ref={audioRef} src="/sounds/arrival-alarm.mp3" preload="none" />
+    </div>
+  );
+}
