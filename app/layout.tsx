@@ -19,6 +19,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="min-h-screen antialiased">
         <Providers>{children}</Providers>
+        <footer className="text-center py-6 text-gray-500 text-lg font-mono border-t border-white/5 mt-10">
+          Made By Anas 😉🍍
+        </footer>
       </body>
     </html>
   );

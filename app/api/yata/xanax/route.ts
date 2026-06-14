@@ -1,13 +1,12 @@
 // app/api/yata/xanax/route.ts
 import { NextResponse } from "next/server";
 
-// YATA Docs Country Keys
 const COUNTRY_KEYS: Record<"uk" | "japan", string> = { uk: "uni", japan: "jap" };
 
 export async function GET(request: Request) {
   try {
     const res = await fetch("https://yata.yt/api/v1/travel/export/", { 
-      cache: "no-store",
+      next: { revalidate: 30 }, // إضافة خيار التحديث التلقائي
       headers: { "User-Agent": "Torn-Smart-Dashboard-App" }
     });
     
@@ -24,8 +23,7 @@ export async function GET(request: Request) {
         continue;
       }
 
-      // الآي دي تبع الزاناكس هو 206
-      const xanax = country.stocks?.find((item: any) => item.name === "Xanax" || item.id === 206);
+      const xanax = country.stocks?.find((item: any) => item.id === 206);
 
       result[key] = {
         quantity: xanax?.quantity ?? 0,
@@ -36,12 +34,12 @@ export async function GET(request: Request) {
 
     return NextResponse.json(result, { 
       headers: { 
-        "Cache-Control": "no-store",
+        "Cache-Control": "public, s-maxage=30, stale-while-revalidate=60", // تحسين الأداء
         "Access-Control-Allow-Origin": "*" 
       } 
     });
   } catch (e: any) {
     console.error("[/api/yata/xanax] ERROR:", e.message);
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    return NextResponse.json({ error: "Service temporarily unavailable" }, { status: 503 });
   }
 }

@@ -1,3 +1,11 @@
 {
-  "rewrites": [{ "source": "/(.*)", "destination": "/$1" }]
+  "crons": [
+    {
+      "path": "/api/cron/update",
+      "schedule": "* * * * *",
+      "headers": {
+        "Authorization": "Bearer ${Anas123}"
+      }
+    }
+  ]
 }
