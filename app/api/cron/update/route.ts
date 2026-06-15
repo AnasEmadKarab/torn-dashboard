@@ -2,14 +2,13 @@ import { NextResponse } from "next/server";
 import { Redis } from "@upstash/redis";
 
 // هذا السطر إجباري لكي يعمل الكود على سيرفرات Cloudflare
-export const runtime = 'edge'; 
 
 
 export async function GET(request: Request) {
   try {
     const redis = new Redis({
-      url: process.env.UPSTASH_REDIS_REST_URL!,
-      token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+      url: "https://clever-hedgehog-148614.upstash.io",
+      token: "gQAAAAAAAkSGAAIgcDFhYmMyOTk5NmY1Mjc0N2I5ODFmZGY4ZmIwYmY4ZjI3Ng", // انسخ التوكن الطويل هنا
     });
     // 1. سحب الداتا من YATA
     const res = await fetch("https://yata.yt/api/v1/travel/export/");
