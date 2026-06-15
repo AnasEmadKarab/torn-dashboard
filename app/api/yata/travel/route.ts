@@ -1,20 +1,13 @@
-// app/api/yata/travel/route.ts
-import { NextResponse } from "next/server";
-
-// هذا السطر ضروري جداً لـ Cloudflare
-export const runtime = 'edge';
-
 export async function GET(request: Request) {
   try {
     const res = await fetch("https://yata.yt/api/v1/travel/export/", { 
       cache: "no-store",
-      headers: { "User-Agent": "Torn-Smart-Dashboard-App" } // يفضل إضافة User-Agent لتقليل احتمالية الحظر
+      headers: { "User-Agent": "Torn-Smart-Dashboard-App" } 
     });
     
     if (!res.ok) throw new Error(`YATA travel API error: ${res.status}`);
     const raw = await res.json();
 
-    // YATA يستخدم اختصارات الدول 'uni' لبريطانيا و 'jap' لليابان في الـ API الخاص بهم
     const countryMap = { uk: "uni", japan: "jap" };
     const result: Record<string, any> = {};
 
@@ -27,7 +20,7 @@ export async function GET(request: Request) {
       };
     }
 
-    return NextResponse.json(result, { 
+    return Response.json(result, { 
       headers: { 
         "Cache-Control": "no-store",
         "Access-Control-Allow-Origin": "*" 
@@ -35,6 +28,6 @@ export async function GET(request: Request) {
     });
   } catch (e: any) {
     console.error("[/api/yata/travel] ERROR:", e.message);
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    return Response.json({ error: e.message }, { status: 500 });
   }
 }

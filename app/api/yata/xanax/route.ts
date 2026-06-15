@@ -1,21 +1,16 @@
-import { NextResponse } from "next/server";
 import { Redis } from "@upstash/redis";
-
 
 export async function GET(request: Request) {
   try {
-    // 💡 نقلنا تعريف Redis لداخل الدالة عشان يقرأ المفاتيح وقت التشغيل صح
-// ضع هذا الكود داخل دالة GET
     const redis = new Redis({
       url: "https://clever-hedgehog-148614.upstash.io",
-      token: "gQAAAAAAAkSGAAIgcDFhYmMyOTk5NmY1Mjc0N2I5ODFmZGY4ZmIwYmY4ZjI3Ng", // انسخ التوكن الطويل هنا
+      token: "gQAAAAAAAkSGAAIgcDFhYmMyOTk5NmY1Mjc0N2I5ODFmZGY4ZmIwYmY4ZjI3Ng",
     });
 
     const data = await redis.get("xanax_data");
     
     if (!data) {
-      // إذا ما في داتا لسا، بنرجع قيم افتراضية بدل الخطأ عشان الداشبورد يفتح
-      return NextResponse.json({ 
+      return Response.json({ 
         uk: { quantity: 0, cost: 0, timestamp: Date.now() / 1000 }, 
         japan: { quantity: 0, cost: 0, timestamp: Date.now() / 1000 } 
       });
@@ -39,7 +34,7 @@ export async function GET(request: Request) {
       };
     }
 
-    return NextResponse.json(result, { 
+    return Response.json(result, { 
       headers: { 
         "Cache-Control": "no-store",
         "Access-Control-Allow-Origin": "*" 
@@ -47,7 +42,6 @@ export async function GET(request: Request) {
     });
   } catch (e: any) {
     console.error("[/api/yata/xanax] ERROR:", e.message);
-    // إرجاع استجابة فارغة بدل الخطأ 500 عشان الداشبورد يكمل تحميل باقي البيانات
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    return Response.json({ error: e.message }, { status: 500 });
   }
 }
