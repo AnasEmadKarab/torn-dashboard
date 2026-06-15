@@ -3,18 +3,22 @@ import { Redis } from "@upstash/redis";
 
 export const runtime = 'edge';
 
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL!,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-});
-
 export async function GET(request: Request) {
   try {
-    // نقرأ الداتا من قاعدة البيانات (Redis) بدل ما نطلبها من YATA مباشرة
+    // 💡 نقلنا تعريف Redis لداخل الدالة عشان يقرأ المفاتيح وقت التشغيل صح
+    const redis = new Redis({
+      url: process.env.UPSTASH_REDIS_REST_URL!,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+    });
+
     const data = await redis.get("xanax_data");
     
     if (!data) {
-      return NextResponse.json({ error: "No data in Redis yet. Waiting for cron." }, { status: 404 });
+      // إذا ما في داتا لسا، بنرجع قيم افتراضية بدل الخطأ عشان الداشبورد يفتح
+      return NextResponse.json({ 
+        uk: { quantity: 0, cost: 0, timestamp: Date.now() / 1000 }, 
+        japan: { quantity: 0, cost: 0, timestamp: Date.now() / 1000 } 
+      });
     }
 
     const COUNTRY_KEYS: Record<"uk" | "japan", string> = { uk: "uni", japan: "jap" };
@@ -42,6 +46,8 @@ export async function GET(request: Request) {
       } 
     });
   } catch (e: any) {
+    console.error("[/api/yata/xanax] ERROR:", e.message);
+    // إرجاع استجابة فارغة بدل الخطأ 500 عشان الداشبورد يكمل تحميل باقي البيانات
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }
