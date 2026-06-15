@@ -1,6 +1,9 @@
 // app/api/yata/travel/route.ts
 import { NextResponse } from "next/server";
 
+// هذا السطر ضروري جداً لـ Cloudflare
+export const runtime = 'edge';
+
 export async function GET(request: Request) {
   try {
     const res = await fetch("https://yata.yt/api/v1/travel/export/", { 

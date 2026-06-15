@@ -1,30 +1,33 @@
-// app/api/yata/xanax/route.ts
 import { NextResponse } from "next/server";
+import { Redis } from "@upstash/redis";
 
-const COUNTRY_KEYS: Record<"uk" | "japan", string> = { uk: "uni", japan: "jap" };
+export const runtime = 'edge';
+
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL!,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+});
 
 export async function GET(request: Request) {
   try {
-    const res = await fetch("https://yata.yt/api/v1/travel/export/", { 
-      next: { revalidate: 30 }, // إضافة خيار التحديث التلقائي
-      headers: { "User-Agent": "Torn-Smart-Dashboard-App" }
-    });
+    // نقرأ الداتا من قاعدة البيانات (Redis) بدل ما نطلبها من YATA مباشرة
+    const data = await redis.get("xanax_data");
     
-    if (!res.ok) throw new Error(`YATA API error: ${res.status}`);
+    if (!data) {
+      return NextResponse.json({ error: "No data in Redis yet. Waiting for cron." }, { status: 404 });
+    }
 
-    const raw = await res.json();
+    const COUNTRY_KEYS: Record<"uk" | "japan", string> = { uk: "uni", japan: "jap" };
+    const raw: any = data;
     const result: Record<string, any> = {};
 
     for (const [key, yataKey] of Object.entries(COUNTRY_KEYS)) {
       const country = raw.stocks?.[yataKey];
-      
       if (!country) {
         result[key] = { quantity: 0, cost: 0, timestamp: Math.floor(Date.now() / 1000) };
         continue;
       }
-
-      const xanax = country.stocks?.find((item: any) => item.id === 206);
-
+      const xanax = country.stocks?.find((item: any) => item.name === "Xanax" || item.id === 206);
       result[key] = {
         quantity: xanax?.quantity ?? 0,
         cost: xanax?.cost ?? 0,
@@ -34,12 +37,11 @@ export async function GET(request: Request) {
 
     return NextResponse.json(result, { 
       headers: { 
-        "Cache-Control": "public, s-maxage=30, stale-while-revalidate=60", // تحسين الأداء
+        "Cache-Control": "no-store",
         "Access-Control-Allow-Origin": "*" 
       } 
     });
   } catch (e: any) {
-    console.error("[/api/yata/xanax] ERROR:", e.message);
-    return NextResponse.json({ error: "Service temporarily unavailable" }, { status: 503 });
+    return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }

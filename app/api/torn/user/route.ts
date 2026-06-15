@@ -1,5 +1,9 @@
+// app/api/torn/user/route.ts
 import { NextResponse } from "next/server";
 import { tornFetch } from "@/lib/torn-api";
+
+// هذا السطر إجباري لـ Cloudflare
+export const runtime = 'edge';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -10,7 +14,6 @@ export async function GET(request: Request) {
   }
 
   try {
-    // جلب الداتا بناءً على المفتاح المرسل ديناميكياً
     const data = await tornFetch<any>("user", apiKey, "bars,cooldowns,money,travel,properties,organizedcrimes");
 
     return NextResponse.json(data, { 

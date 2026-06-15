@@ -2,6 +2,9 @@
 import { NextResponse } from "next/server";
 import { tornFetch } from "@/lib/torn-api";
 
+// هذا السطر ضروري جداً لـ Cloudflare
+export const runtime = 'edge';
+
 export async function GET(request: Request) {
   // استخراج المفتاح من الرابط (الذي يمرره الـ Hook)
   const { searchParams } = new URL(request.url);
