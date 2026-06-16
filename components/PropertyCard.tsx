@@ -1,27 +1,25 @@
 "use client";
 
-export default function PropertyCard({ properties, status }: any) {
-  // 1. تحديد اسم العقار الحالي
-  const propertyName = typeof status === "string" ? status : status?.name || "No Property";
+export default function PropertyCard({ properties }: any) {
+  // 1. جلب أول عقار من المصفوفة (واللي هو العقار الفعال/الأساسي حسب ترتيب تورن)
+  const activeProp = properties && Array.isArray(properties) && properties.length > 0 ? properties[0] : null;
 
+  // 2. قيم افتراضية في حال الحساب ما عنده بيت
+  const propertyName = activeProp?.property?.name || "No Property";
   let isRented = false;
   let rentDaysLeft = 0;
-  let upkeep = 0;
+  let upkeepTotal = 0;
 
-  // 2. قراءة الداتا بشكل ذكي (لأن تورن بتبعتها كـ Object مش Array)
-  if (properties && typeof properties === 'object') {
-    const propArray = Array.isArray(properties) ? properties : Object.values(properties);
-    
-    // سحب أول عقار (واللي هو غالباً العقار الفعال باللعبة)
-    const activeProp: any = propArray[0]; 
+  if (activeProp) {
+    // السحر هنا: فك الـ Object وجمع مصاريف البيت + مصاريف الطاقم
+    if (activeProp.upkeep && typeof activeProp.upkeep === 'object') {
+      upkeepTotal = (activeProp.upkeep.property || 0) + (activeProp.upkeep.staff || 0);
+    }
 
-    if (activeProp) {
-      upkeep = activeProp.upkeep ?? activeProp.staff_cost ?? 0;
-      // إذا في أيام إيجار أكبر من صفر، يعني إنت مستأجر
-      if (activeProp.rent_left && activeProp.rent_left > 0) {
-        isRented = true;
-        rentDaysLeft = activeProp.rent_left;
-      }
+    // التحقق من حالة الإيجار والأيام المتبقية
+    if (activeProp.status === "rented" && activeProp.rental_period_remaining > 0) {
+      isRented = true;
+      rentDaysLeft = activeProp.rental_period_remaining;
     }
   }
 
@@ -32,7 +30,7 @@ export default function PropertyCard({ properties, status }: any) {
       <h2 className="text-xl font-bold text-cyan-300 mb-1 relative z-10">{propertyName}</h2>
       
       <p className="text-sm text-gray-400 mb-3 relative z-10">
-        Daily Upkeep + Staff: <span className="text-white font-medium">${upkeep.toLocaleString()}</span>
+        Daily Upkeep + Staff: <span className="text-white font-medium">${upkeepTotal.toLocaleString()}</span>
       </p>
 
       <div className="relative z-10">
