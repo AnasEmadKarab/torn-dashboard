@@ -43,11 +43,16 @@ export default function OCFilterList({ crimes }: { crimes: any[] }) {
 
   // حالة 2: المستخدم مسجل في OC (جلب البيانات بذكاء لتفادي أي تغيير في مسميات الـ API)
   const crimeName = activeCrime.crime?.name || activeCrime.name || "Unknown OC";
-  const crimeStatus = activeCrime.status || activeCrime.state || "Unknown Stage";
+  const rawStatus = activeCrime.status || activeCrime.state || "Unknown Stage";
+  
+  // 👈 الفلتر الذكي: إذا الـ API بعت Recruiting، بنعرضها Planning
+  let displayStatus = rawStatus.replace("_", " ");
+  if (displayStatus.toLowerCase() === "recruiting") {
+    displayStatus = "Planning";
+  }
 
   return (
     <div className="glass-panel p-5 border border-cyan-500/30 relative overflow-hidden">
-      {/* تأثير إضاءة خفيف بالخلفية لتمييز الكارت */}
       <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-3xl -mr-10 -mt-10"></div>
 
       <h2 className="text-lg font-semibold text-cyan-300 mb-4 flex items-center gap-2">
@@ -56,27 +61,23 @@ export default function OCFilterList({ crimes }: { crimes: any[] }) {
       </h2>
 
       <div className="bg-gray-900/60 p-4 rounded-lg flex flex-col md:flex-row justify-between items-center gap-4 relative z-10">
-        {/* اسم الجريمة */}
         <div className="text-center md:text-left">
           <span className="block text-xs text-gray-400 mb-1 uppercase tracking-wider">Crime Name</span>
           <span className="text-white font-bold text-base md:text-lg">{crimeName}</span>
         </div>
 
-        {/* فاصل مرئي */}
         <div className="w-full md:w-px h-px md:h-10 bg-gray-700/50"></div>
 
-        {/* المرحلة الحالية */}
         <div className="text-center">
           <span className="block text-xs text-gray-400 mb-1 uppercase tracking-wider">Current Stage</span>
           <span className="text-cyan-400 font-medium capitalize px-3 py-1 bg-cyan-900/30 rounded-full border border-cyan-800/50">
-            {crimeStatus.replace("_", " ")}
+            {/* عرض الحالة بعد الفلترة */}
+            {displayStatus}
           </span>
         </div>
 
-        {/* فاصل مرئي */}
         <div className="w-full md:w-px h-px md:h-10 bg-gray-700/50"></div>
 
-        {/* الوقت المتبقي بعداد حي */}
         <div className="text-center md:text-right">
           <span className="block text-xs text-gray-400 mb-1 uppercase tracking-wider">Time Remaining</span>
           <span className="text-pink-400 font-mono font-bold text-lg md:text-xl">
