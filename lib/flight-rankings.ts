@@ -1,30 +1,51 @@
-// lib/flight-rankings.ts
-import { leaveTimeForArrival } from "./travel-data";
+import { calculateFlightBuffer } from "./predictions";
 
 export interface FlightOption {
-  id: string;
-  country: "uk" | "japan";
+  destination: "uk" | "japan";
+  departureTime: number;
+  arrivalTime: number;
   restockTime: number;
-  leaveTime: number;
 }
 
-export function getTopFlights(ukData: any[], japanData: any[], count = 5): FlightOption[] {
-  const all: FlightOption[] = [];
+export function getTopFlights(ukData: any, japanData: any, userTravelTimeLeft: number = 0): FlightOption[] {
+  if (!ukData || !japanData) return [];
 
-  for (const point of ukData) {
-    if (point.isRestock) {
-      all.push({ id: `uk-${point.timestamp}`, country: "uk", restockTime: point.timestamp, leaveTime: leaveTimeForArrival(point.timestamp, "uk") });
+  // استخدام البفر (وقت الرجعة + 3 دقايق) اللي برمجناه بملف predictions
+  const availableDepartureTime = calculateFlightBuffer(userTravelTimeLeft);
+  
+  const flights: FlightOption[] = [];
+  const flightDurations = { uk: 6660, japan: 9480 }; // وقت السفر بالثواني بالستاندرد
+
+  for (const country of ["uk", "japan"] as const) {
+    const data = country === "uk" ? ukData : japanData;
+    const duration = flightDurations[country];
+    
+    // استخدام Next Expected الدقيق من الباك إند
+    const restockTime = data.next_expected; 
+    
+    // أفضل وقت للإقلاع = وقت نزول البضاعة - وقت الرحلة
+    const idealDeparture = restockTime - duration;
+
+    // هل يمدينا نلحق هاد الإقلاع بناءً على وقت رجعتنا والبفر؟
+    if (idealDeparture >= availableDepartureTime) {
+      flights.push({
+        destination: country,
+        departureTime: idealDeparture,
+        arrivalTime: restockTime,
+        restockTime: restockTime,
+      });
+    } else {
+      // إذا ما لحقنا، بنحسب الدورة اللي بعدها (نضيف وقت التأخير الطبيعي)
+      const nextCycleRestock = restockTime + (country === "uk" ? 7200 : 9900);
+      flights.push({
+        destination: country,
+        departureTime: nextCycleRestock - duration,
+        arrivalTime: nextCycleRestock,
+        restockTime: nextCycleRestock,
+      });
     }
   }
-  for (const point of japanData) {
-    if (point.isRestock) {
-      all.push({ id: `japan-${point.timestamp}`, country: "japan", restockTime: point.timestamp, leaveTime: leaveTimeForArrival(point.timestamp, "japan") });
-    }
-  }
 
-  const now = Date.now() / 1000;
-  return all
-    .filter((f) => f.leaveTime > now)
-    .sort((a, b) => a.leaveTime - b.leaveTime)
-    .slice(0, count);
+  // ترتيب الرحلات من الأقرب للأبعد
+  return flights.sort((a, b) => a.departureTime - b.departureTime);
 }

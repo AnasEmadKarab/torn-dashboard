@@ -1,9 +1,5 @@
 // app/api/torn/faction/route.ts
-import { NextResponse } from "next/server";
 import { tornFetch } from "@/lib/torn-api";
-
-// هذا السطر ضروري جداً لـ Cloudflare
-export const runtime = 'edge';
 
 export async function GET(request: Request) {
   // استخراج المفتاح من الرابط (الذي يمرره الـ Hook)
@@ -11,7 +7,7 @@ export async function GET(request: Request) {
   const apiKey = searchParams.get("key");
 
   if (!apiKey) {
-    return NextResponse.json({ error: "TORN_API_KEY missing" }, { status: 400 });
+    return Response.json({ error: "TORN_API_KEY missing" }, { status: 400 });
   }
 
   let crimes: any[] = [];
@@ -33,7 +29,7 @@ export async function GET(request: Request) {
       crimes = []; 
     }
 
-    return NextResponse.json({ 
+    return Response.json({ 
       crimes, 
       vault: { money_balance: vaultBalance } 
     }, { 
@@ -42,6 +38,6 @@ export async function GET(request: Request) {
 
   } catch (e: any) {
     console.error("[/api/torn/faction] FATAL:", e.message);
-    return NextResponse.json({ crimes: [], vault: { money_balance: 0 } });
+    return Response.json({ crimes: [], vault: { money_balance: 0 } });
   }
 }

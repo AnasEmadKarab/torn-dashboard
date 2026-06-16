@@ -43,34 +43,41 @@ export default function XanaxTimelineChart({ ukData, japanData, ukPrice, japanPr
 
   return (
     <div className="glass-panel p-5">
-    <div className="flex justify-between items-center mb-4">
-    <h2 className="text-lg font-semibold text-cyan-300">Xanax Stock — TTP Precision Forecast</h2>
-    <div className="flex gap-6 font-mono text-xs">
-        <div className="flex flex-col items-center">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-lg font-semibold text-cyan-300">Xanax Stock — TTP Precision Forecast</h2>
+        <div className="flex gap-6 font-mono text-xs">
+          <div className="flex flex-col items-center">
             <span className="text-cyan-400 font-bold">UK</span>
             <span className="text-white">{ukData[0]?.predictedStock?.toLocaleString() ?? 0} <span className="text-[10px] text-gray-500">Stock</span></span>
             <span className="text-cyan-200">${ukPrice?.toLocaleString() ?? "N/A"} <span className="text-[10px] text-gray-500">Price</span></span>
-        </div>
-        <div className="flex flex-col items-center border-l border-white/10 pl-6">
+          </div>
+          <div className="flex flex-col items-center border-l border-white/10 pl-6">
             <span className="text-pink-400 font-bold">JP</span>
             <span className="text-white">{japanData[0]?.predictedStock?.toLocaleString() ?? 0} <span className="text-[10px] text-gray-500">Stock</span></span>
             <span className="text-pink-200">${japanPrice?.toLocaleString() ?? "N/A"} <span className="text-[10px] text-gray-500">Price</span></span>
+          </div>
         </div>
-    </div>
-    </div>
+      </div>
       <ResponsiveContainer width="100%" height={320}>
         <LineChart>
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
           <XAxis 
             dataKey="timestamp" 
             type="number" 
-            domain={['dataMin', 'dataMax']} 
+            // السطر التالي يجبر الرسم البياني أن يبدأ من "الآن" بالضبط ويقص أي بيانات سابقة
+            domain={[now, 'dataMax']} 
+            allowDataOverflow={true}
             tickFormatter={formatTime} 
             stroke="#666" 
             minTickGap={40} 
-            allowDuplicatedCategory={false} 
           />
-          <YAxis stroke="#666" domain={[0, 55000]} tickFormatter={(v) => Math.round(v).toString()} />
+          {/* السطر التالي يخلي الارتفاع متجاوب مع الستوك الحقيقي (مثلاً 2500) بدل ما يكون ثابت 55000 */}
+          <YAxis 
+            stroke="#666" 
+            domain={[0, 'dataMax + 200']} 
+            allowDataOverflow={true}
+            tickFormatter={(v) => Math.round(v).toString()} 
+          />
           <Tooltip content={<CustomTooltip />} />
           <ReferenceLine x={now} stroke="#888" strokeDasharray="4 4" label={{ value: "Now", position: "top", fill: "#888", fontSize: 11 }} />
           
