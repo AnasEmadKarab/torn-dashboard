@@ -71,8 +71,8 @@ export default function Dashboard() {
           <XanaxTimelineChart 
             ukData={xanax.uk} 
             japanData={xanax.japan} 
-            ukPrice={xanax.uk?.cost} 
-            japanPrice={xanax.japan?.cost} 
+            ukPrice={xanax.rawUk?.cost} 
+            japanPrice={xanax.rawJapan?.cost} 
           />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
             <FlightScheduler flights={topFlights} onSelect={setScheduledFlight} />
