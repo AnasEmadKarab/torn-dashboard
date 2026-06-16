@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTornUser } from "@/hooks/useTornUser";
 import { useXanaxPredictions } from "@/hooks/useXanaxPredictions";
 import { getTopFlights, FlightOption } from "@/lib/flight-rankings";
@@ -16,9 +16,24 @@ import DepartureAlarm from "@/components/DepartureAlarm";
 
 export default function Dashboard() {
   const [scheduledFlight, setScheduledFlight] = useState<FlightOption | null>(null);
+  
+  // 👈 حالة اختيار نوع الطيارة
+  const [flightType, setFlightType] = useState<"standard" | "airstrip">("standard");
 
   const { data: user, isLoading: userLoading, error: userError } = useTornUser();
   const { data: xanax } = useXanaxPredictions();
+
+  // 👈 قراءة الاختيار المحفوظ من المتصفح عند فتح الموقع
+  useEffect(() => {
+    const savedType = localStorage.getItem("flightType") as "standard" | "airstrip";
+    if (savedType) setFlightType(savedType);
+  }, []);
+
+  // 👈 دالة لحفظ الاختيار الجديد
+  const handleFlightTypeChange = (type: "standard" | "airstrip") => {
+    setFlightType(type);
+    localStorage.setItem("flightType", type);
+  };
 
   if (userLoading || !user) {
     return <div className="min-h-screen flex items-center justify-center text-cyan-300 font-medium">Loading dashboard...</div>;
@@ -36,8 +51,8 @@ export default function Dashboard() {
 
   const myTravelTimeLeft = user.travel?.time_left ?? 0;
   
-  // 💡 التعديل هنا: تمرير الداتا الخام (raw) اللي بتحتوي على الأوقات الذكية
-  const topFlights = xanax ? getTopFlights(xanax.rawUk, xanax.rawJapan, myTravelTimeLeft) : [];
+  // 👈 تمرير نوع الطيارة للخوارزمية
+  const topFlights = xanax ? getTopFlights(xanax.rawUk, xanax.rawJapan, myTravelTimeLeft, flightType) : [];
 
   return (
     <div className="min-h-screen p-4 md:p-6 max-w-7xl mx-auto space-y-4 md:space-y-6">
@@ -67,13 +82,29 @@ export default function Dashboard() {
 
       {xanax && (
         <>
-          {/* 💡 التعديل هنا: تمرير الداتا الخام للرسم البياني لعرض الأوقات */}
           <XanaxTimelineChart 
             ukData={xanax.uk} 
             japanData={xanax.japan} 
             rawUk={xanax.rawUk} 
             rawJapan={xanax.rawJapan} 
           />
+          
+          {/* 👈 أزرار اختيار نوع الرحلة */}
+          <div className="flex justify-center md:justify-start gap-2 mb-2">
+            <button 
+              onClick={() => handleFlightTypeChange("standard")}
+              className={`px-4 py-2 text-sm rounded-lg font-medium transition-colors ${flightType === "standard" ? "bg-cyan-600 text-white" : "bg-white/5 text-gray-400 hover:bg-white/10"}`}
+            >
+              Standard Flight
+            </button>
+            <button 
+              onClick={() => handleFlightTypeChange("airstrip")}
+              className={`px-4 py-2 text-sm rounded-lg font-medium transition-colors ${flightType === "airstrip" ? "bg-pink-600 text-white" : "bg-white/5 text-gray-400 hover:bg-white/10"}`}
+            >
+              Private Airstrip (PI)
+            </button>
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
             <FlightScheduler flights={topFlights} onSelect={setScheduledFlight} />
             <DepartureAlarm flight={scheduledFlight} />

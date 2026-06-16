@@ -42,12 +42,11 @@ function CustomTooltip({ active, payload, label }: any) {
 export default function XanaxTimelineChart({ ukData, japanData, rawUk, rawJapan }: ChartProps) {
   const now = Math.floor(Date.now() / 1000);
 
-  return (
+return (
     <div className="glass-panel p-5">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-        <h2 className="text-lg font-semibold text-cyan-300 mb-4 md:mb-0">Xanax Stock — TTP Precision Forecast</h2>
+        <h2 className="text-lg font-semibold text-cyan-300 mb-4 md:mb-0">Xanax Stock</h2>
         
-        {/* 💡 التصميم الجديد لعرض الأوقات والأسعار */}
         <div className="flex w-full md:w-auto gap-4 bg-gray-900/50 p-3 rounded-lg border border-gray-700/50">
           <div className="flex-1 md:flex-none flex flex-col">
             <span className="text-cyan-400 font-bold border-b border-cyan-800/50 pb-1 mb-1">🇬🇧 UK</span>
@@ -79,31 +78,37 @@ export default function XanaxTimelineChart({ ukData, japanData, rawUk, rawJapan 
         </div>
       </div>
 
-      <ResponsiveContainer width="100%" height={320}>
-        <LineChart>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-          <XAxis 
-            dataKey="timestamp" 
-            type="number" 
-            domain={[now, 'dataMax']} 
-            allowDataOverflow={true}
-            tickFormatter={formatTime} 
-            stroke="#666" 
-            minTickGap={40} 
-          />
-          <YAxis 
-            stroke="#666" 
-            domain={[0, 'dataMax + 200']} 
-            allowDataOverflow={true}
-            tickFormatter={(v) => Math.round(v).toString()} 
-          />
-          <Tooltip content={<CustomTooltip />} />
-          <ReferenceLine x={now} stroke="#888" strokeDasharray="4 4" label={{ value: "Now", position: "top", fill: "#888", fontSize: 11 }} />
-          
-          <Line data={ukData} type="linear" dataKey="predictedStock" stroke="#00f0ff" strokeWidth={2} dot={false} name="UK" />
-          <Line data={japanData} type="linear" dataKey="predictedStock" stroke="#ff2d75" strokeWidth={2} dot={false} name="Japan" />
-        </LineChart>
-      </ResponsiveContainer>
+      {/* 👈 السحر هنا: غلاف يسمح بالسحب الجانبي (Scroll) */}
+      <div className="w-full overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
+        {/* العرض الثابت 900px يضمن عدم حشر الدورات، بحيث تظهر 3 فقط على الشاشات العادية والباقي بالسحب */}
+        <div style={{ minWidth: "900px", height: "240px" }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+              <XAxis 
+                dataKey="timestamp" 
+                type="number" 
+                domain={[now, 'dataMax']} 
+                allowDataOverflow={true}
+                tickFormatter={formatTime} 
+                stroke="#666" 
+                minTickGap={40} 
+              />
+              {/* 👈 إخفاء الأرقام الجانبية للستوك لتنظيف الواجهة */}
+              <YAxis 
+                hide={true} 
+                domain={[0, 'dataMax + 200']} 
+                allowDataOverflow={true}
+              />
+              <Tooltip content={<CustomTooltip />} />
+              <ReferenceLine x={now} stroke="#888" strokeDasharray="4 4" label={{ value: "Now", position: "top", fill: "#888", fontSize: 11 }} />
+              
+              <Line data={ukData} type="linear" dataKey="predictedStock" stroke="#00f0ff" strokeWidth={2} dot={false} name="UK" />
+              <Line data={japanData} type="linear" dataKey="predictedStock" stroke="#ff2d75" strokeWidth={2} dot={false} name="Japan" />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
     </div>
   );
 }
