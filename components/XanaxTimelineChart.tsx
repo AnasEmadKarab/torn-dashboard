@@ -5,11 +5,12 @@ import { leaveTimeForArrival } from "@/lib/travel-data";
 interface ChartProps {
   ukData: any[];
   japanData: any[];
-  ukPrice?: number;
-  japanPrice?: number;
+  rawUk?: any;
+  rawJapan?: any;
 }
 
 function formatTime(ts: number) {
+  if (!ts) return "--:--";
   return new Date(ts * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
@@ -38,40 +39,58 @@ function CustomTooltip({ active, payload, label }: any) {
   );
 }
 
-export default function XanaxTimelineChart({ ukData, japanData, ukPrice, japanPrice }: ChartProps) {
+export default function XanaxTimelineChart({ ukData, japanData, rawUk, rawJapan }: ChartProps) {
   const now = Math.floor(Date.now() / 1000);
 
   return (
     <div className="glass-panel p-5">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-lg font-semibold text-cyan-300">Xanax Stock — TTP Precision Forecast</h2>
-        <div className="flex gap-6 font-mono text-xs">
-          <div className="flex flex-col items-center">
-            <span className="text-cyan-400 font-bold">UK</span>
-            <span className="text-white">{ukData[0]?.predictedStock?.toLocaleString() ?? 0} <span className="text-[10px] text-gray-500">Stock</span></span>
-            <span className="text-cyan-200">${ukPrice?.toLocaleString() ?? "N/A"} <span className="text-[10px] text-gray-500">Price</span></span>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+        <h2 className="text-lg font-semibold text-cyan-300 mb-4 md:mb-0">Xanax Stock — TTP Precision Forecast</h2>
+        
+        {/* 💡 التصميم الجديد لعرض الأوقات والأسعار */}
+        <div className="flex w-full md:w-auto gap-4 bg-gray-900/50 p-3 rounded-lg border border-gray-700/50">
+          <div className="flex-1 md:flex-none flex flex-col">
+            <span className="text-cyan-400 font-bold border-b border-cyan-800/50 pb-1 mb-1">🇬🇧 UK</span>
+            <div className="text-xs text-gray-400 flex justify-between gap-4">
+              <span>Last Restock:</span> <span className="text-white">{formatTime(rawUk?.last_restock)}</span>
+            </div>
+            <div className="text-xs text-gray-400 flex justify-between gap-4">
+              <span>Next Expected:</span> <span className="text-cyan-300 font-bold">{formatTime(rawUk?.next_expected)}</span>
+            </div>
+            <div className="text-xs text-gray-400 flex justify-between gap-4 mt-1 pt-1 border-t border-gray-800">
+              <span>Price:</span> <span className="text-cyan-200">${rawUk?.cost?.toLocaleString() ?? "N/A"}</span>
+            </div>
           </div>
-          <div className="flex flex-col items-center border-l border-white/10 pl-6">
-            <span className="text-pink-400 font-bold">JP</span>
-            <span className="text-white">{japanData[0]?.predictedStock?.toLocaleString() ?? 0} <span className="text-[10px] text-gray-500">Stock</span></span>
-            <span className="text-pink-200">${japanPrice?.toLocaleString() ?? "N/A"} <span className="text-[10px] text-gray-500">Price</span></span>
+          
+          <div className="w-px bg-gray-700 hidden md:block mx-2"></div>
+          
+          <div className="flex-1 md:flex-none flex flex-col border-l border-gray-700 md:border-none pl-4 md:pl-0">
+            <span className="text-pink-400 font-bold border-b border-pink-800/50 pb-1 mb-1">🇯🇵 Japan</span>
+            <div className="text-xs text-gray-400 flex justify-between gap-4">
+              <span>Last Restock:</span> <span className="text-white">{formatTime(rawJapan?.last_restock)}</span>
+            </div>
+            <div className="text-xs text-gray-400 flex justify-between gap-4">
+              <span>Next Expected:</span> <span className="text-pink-300 font-bold">{formatTime(rawJapan?.next_expected)}</span>
+            </div>
+            <div className="text-xs text-gray-400 flex justify-between gap-4 mt-1 pt-1 border-t border-gray-800">
+              <span>Price:</span> <span className="text-pink-200">${rawJapan?.cost?.toLocaleString() ?? "N/A"}</span>
+            </div>
           </div>
         </div>
       </div>
+
       <ResponsiveContainer width="100%" height={320}>
         <LineChart>
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
           <XAxis 
             dataKey="timestamp" 
             type="number" 
-            // السطر التالي يجبر الرسم البياني أن يبدأ من "الآن" بالضبط ويقص أي بيانات سابقة
             domain={[now, 'dataMax']} 
             allowDataOverflow={true}
             tickFormatter={formatTime} 
             stroke="#666" 
             minTickGap={40} 
           />
-          {/* السطر التالي يخلي الارتفاع متجاوب مع الستوك الحقيقي (مثلاً 2500) بدل ما يكون ثابت 55000 */}
           <YAxis 
             stroke="#666" 
             domain={[0, 'dataMax + 200']} 

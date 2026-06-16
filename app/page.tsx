@@ -34,11 +34,10 @@ export default function Dashboard() {
     );
   }
 
-  // سحب وقت السفر المتبقي تبعك (إذا كنت مسافر) لتمريره لخوارزمية الطيران
   const myTravelTimeLeft = user.travel?.time_left ?? 0;
   
-  // تمرير المتغير الجديد لمعادلة الرحلات
-  const topFlights = xanax ? getTopFlights(xanax.uk, xanax.japan, myTravelTimeLeft) : [];
+  // 💡 التعديل هنا: تمرير الداتا الخام (raw) اللي بتحتوي على الأوقات الذكية
+  const topFlights = xanax ? getTopFlights(xanax.rawUk, xanax.rawJapan, myTravelTimeLeft) : [];
 
   return (
     <div className="min-h-screen p-4 md:p-6 max-w-7xl mx-auto space-y-4 md:space-y-6">
@@ -68,11 +67,12 @@ export default function Dashboard() {
 
       {xanax && (
         <>
+          {/* 💡 التعديل هنا: تمرير الداتا الخام للرسم البياني لعرض الأوقات */}
           <XanaxTimelineChart 
             ukData={xanax.uk} 
             japanData={xanax.japan} 
-            ukPrice={xanax.rawUk?.cost} 
-            japanPrice={xanax.rawJapan?.cost} 
+            rawUk={xanax.rawUk} 
+            rawJapan={xanax.rawJapan} 
           />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
             <FlightScheduler flights={topFlights} onSelect={setScheduledFlight} />
