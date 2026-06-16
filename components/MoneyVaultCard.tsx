@@ -1,45 +1,32 @@
-// components/MoneyVaultCard.tsx
 "use client";
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
 
 interface Props {
   cashOnHand: number;
   vaultBalance: number;
+  hasFaction?: boolean; // 👈 المتغير الجديد
 }
 
-export default function MoneyVaultCard({ cashOnHand, vaultBalance }: Props) {
-  const [alertActive, setAlertActive] = useState(false);
-
-  useEffect(() => {
-    setAlertActive(cashOnHand > 1_000_000);
-  }, [cashOnHand]);
-
+export default function MoneyVaultCard({ cashOnHand, vaultBalance, hasFaction = false }: Props) {
   return (
-    <div className={`glass-panel p-5 ${alertActive ? "flash-alert glow-pink" : "glow-cyan"}`}>
-      <h2 className="text-lg font-semibold mb-3 text-cyan-300">Finances</h2>
-
-      <div className="flex justify-between items-baseline mb-2">
-        <span className="text-gray-400 text-sm">Cash on Hand</span>
-        <span className="text-2xl font-bold font-mono">${cashOnHand.toLocaleString()}</span>
+    <div className="glass-panel p-5 border-t-2 border-pink-500/50 relative overflow-hidden">
+      <h2 className="text-xl font-bold text-cyan-300 mb-4">Finances</h2>
+      
+      <div className="space-y-3 mb-4">
+        <div className="flex justify-between items-center">
+          <span className="text-sm text-gray-400">Cash on Hand</span>
+          <span className="text-lg font-bold text-white">${cashOnHand.toLocaleString()}</span>
+        </div>
+        <div className="flex justify-between items-center">
+          <span className="text-sm text-gray-400">Faction Vault (You)</span>
+          <span className="text-lg font-bold text-emerald-400">${vaultBalance.toLocaleString()}</span>
+        </div>
       </div>
 
-      <div className="flex justify-between items-baseline mb-4">
-        <span className="text-gray-400 text-sm">Faction Vault (You)</span>
-        <span className="text-xl font-mono text-emerald-300">${vaultBalance.toLocaleString()}</span>
-      </div>
-
-      {alertActive && (
-        <motion.a
-          href="https://www.torn.com/factions.php?step=your#/tab=armory"
-          target="_blank"
-          rel="noopener noreferrer"
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="block w-full text-center py-3 rounded-xl font-bold bg-pink-500/90 hover:bg-pink-400 transition-colors text-white shadow-lg"
-        >
+      {/* 👈 الزر ما رح يظهر إلا إذا اللاعب عنده فاكشن! */}
+      {hasFaction && (
+        <button className="w-full bg-pink-600 hover:bg-pink-500 text-white font-bold py-2 rounded-lg transition-colors flex justify-center items-center gap-2">
           🚨 Deposit Cash to Faction Vault Now
-        </motion.a>
+        </button>
       )}
     </div>
   );

@@ -1,19 +1,23 @@
 "use client";
 
 export default function PropertyCard({ properties, status }: any) {
-  // 1. تحديد اسم العقار الحالي (Torn بتبعت الاسم جاهز جوا user.property)
+  // 1. تحديد اسم العقار الحالي
   const propertyName = typeof status === "string" ? status : status?.name || "No Property";
 
-  // 2. البحث عن تفاصيل الإيجار إذا كان العقار موجود جوا قائمة properties
   let isRented = false;
   let rentDaysLeft = 0;
   let upkeep = 0;
 
-  // إذا كان properties عبارة عن مصفوفة (Array)
-  if (properties && Array.isArray(properties)) {
-    const activeProp = properties.find((p: any) => p.name === propertyName || p.type === propertyName);
+  // 2. قراءة الداتا بشكل ذكي (لأن تورن بتبعتها كـ Object مش Array)
+  if (properties && typeof properties === 'object') {
+    const propArray = Array.isArray(properties) ? properties : Object.values(properties);
+    
+    // سحب أول عقار (واللي هو غالباً العقار الفعال باللعبة)
+    const activeProp: any = propArray[0]; 
+
     if (activeProp) {
-      upkeep = activeProp.upkeep ?? 0;
+      upkeep = activeProp.upkeep ?? activeProp.staff_cost ?? 0;
+      // إذا في أيام إيجار أكبر من صفر، يعني إنت مستأجر
       if (activeProp.rent_left && activeProp.rent_left > 0) {
         isRented = true;
         rentDaysLeft = activeProp.rent_left;
@@ -23,7 +27,6 @@ export default function PropertyCard({ properties, status }: any) {
 
   return (
     <div className="glass-panel p-5 border-t-2 border-cyan-500/50 relative overflow-hidden">
-      {/* إضاءة خفيفة بالخلفية */}
       <div className="absolute -top-10 -right-10 w-32 h-32 bg-cyan-500/10 rounded-full blur-3xl"></div>
 
       <h2 className="text-xl font-bold text-cyan-300 mb-1 relative z-10">{propertyName}</h2>

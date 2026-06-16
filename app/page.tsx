@@ -66,6 +66,8 @@ export default function Dashboard() {
         <MoneyVaultCard
           cashOnHand={user.money?.wallet ?? user.money_onhand ?? 0}
           vaultBalance={user.money?.faction?.money ?? 0}
+          // 👈 هاد السطر رح يشيك إذا الفاكشن موجود وأكبر من 0
+          hasFaction={user.faction?.faction_id !== 0 && !!user.faction?.faction_id} 
         />
       </div>
 
