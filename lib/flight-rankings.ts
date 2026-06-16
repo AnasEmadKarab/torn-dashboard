@@ -7,26 +7,30 @@ export interface FlightOption {
   restockTime: number;
 }
 
-export function getTopFlights(ukData: any, japanData: any, userTravelTimeLeft: number = 0): FlightOption[] {
+export function getTopFlights(
+  ukData: any, 
+  japanData: any, 
+  userTravelTimeLeft: number = 0,
+  flightType: "standard" | "airstrip" = "standard" // 👈 هذا هو المتغير الرابع اللي كان ناقص!
+): FlightOption[] {
   if (!ukData || !japanData) return [];
 
-  // استخدام البفر (وقت الرجعة + 3 دقايق) اللي برمجناه بملف predictions
   const availableDepartureTime = calculateFlightBuffer(userTravelTimeLeft);
   
+  const flightDurations = {
+    standard: { uk: 6660, japan: 9480 },
+    airstrip: { uk: 4662, japan: 6636 }
+  };
+
   const flights: FlightOption[] = [];
-  const flightDurations = { uk: 6660, japan: 9480 }; // وقت السفر بالثواني بالستاندرد
 
   for (const country of ["uk", "japan"] as const) {
     const data = country === "uk" ? ukData : japanData;
-    const duration = flightDurations[country];
+    const duration = flightDurations[flightType][country]; 
     
-    // استخدام Next Expected الدقيق من الباك إند
     const restockTime = data.next_expected; 
-    
-    // أفضل وقت للإقلاع = وقت نزول البضاعة - وقت الرحلة
     const idealDeparture = restockTime - duration;
 
-    // هل يمدينا نلحق هاد الإقلاع بناءً على وقت رجعتنا والبفر؟
     if (idealDeparture >= availableDepartureTime) {
       flights.push({
         destination: country,
@@ -35,7 +39,6 @@ export function getTopFlights(ukData: any, japanData: any, userTravelTimeLeft: n
         restockTime: restockTime,
       });
     } else {
-      // إذا ما لحقنا، بنحسب الدورة اللي بعدها (نضيف وقت التأخير الطبيعي)
       const nextCycleRestock = restockTime + (country === "uk" ? 7200 : 9900);
       flights.push({
         destination: country,
@@ -46,6 +49,5 @@ export function getTopFlights(ukData: any, japanData: any, userTravelTimeLeft: n
     }
   }
 
-  // ترتيب الرحلات من الأقرب للأبعد
   return flights.sort((a, b) => a.departureTime - b.departureTime);
 }
