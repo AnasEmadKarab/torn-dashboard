@@ -51,7 +51,7 @@ export async function GET(request: Request) {
         timestamp: lastUpdate,
         last_restock: countryData.last_restock_time, // وقت آخر بضاعة نزلت
         next_expected: nextExpected,                 // وقت البضاعة القادمة (ديناميكي)
-        max_stock: stats.empirical_max_stock > 0 ? stats.empirical_max_stock : (key === 'uk' ? 50000 : 40000)
+        max_stock: stats.empirical_max_stock > 0 ? stats.empirical_max_stock : 2500
       };
     }
 
