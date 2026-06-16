@@ -14,7 +14,7 @@ export default function DepartureAlarm({ flight }: { flight: FlightOption | null
     alarmFired.current = false;
 
     const id = setInterval(() => {
-      const r = flight.leaveTime - Date.now() / 1000;
+      const r = flight.departureTime - Date.now() / 1000;
       setRemaining(r);
       if (r <= 180 && r > 0 && !alarmFired.current) {
         alarmFired.current = true;
@@ -45,7 +45,7 @@ if (!flight || remaining === null || remaining <= 0) {
       <div className={`glass-panel p-5 ${critical ? "glow-pink flash-alert" : "glow-cyan"}`}>
         <h2 className="text-lg font-semibold mb-2 text-cyan-300">Scheduled Departure</h2>
         <p className="text-gray-300">
-          Destination: <span className="font-semibold text-white">{flight.country.toUpperCase()}</span>
+          Destination: <span className="font-semibold text-white">{flight.destination.toUpperCase()}</span>
         </p>
         <p className="text-3xl font-bold font-mono mt-2">
           {mins}m {secs.toString().padStart(2, "0")}s
