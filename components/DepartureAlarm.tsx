@@ -1,13 +1,16 @@
-// components/DepartureAlarm.tsx
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { FlightOption } from "@/lib/flight-rankings";
 import { motion, AnimatePresence } from "framer-motion";
+import { useNotifications } from "@/hooks/useNotifications";
 
 export default function DepartureAlarm({ flight }: { flight: FlightOption | null }) {
   const [remaining, setRemaining] = useState<number | null>(null);
   const alarmFired = useRef(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  
+  // 👈 استدعاء هوك الإشعارات
+  const { settings, sendNotification } = useNotifications();
 
   useEffect(() => {
     if (!flight) return;
@@ -16,15 +19,24 @@ export default function DepartureAlarm({ flight }: { flight: FlightOption | null
     const id = setInterval(() => {
       const r = flight.departureTime - Date.now() / 1000;
       setRemaining(r);
+      
+      // لما يوصل العداد لـ 3 دقائق أو أقل
       if (r <= 180 && r > 0 && !alarmFired.current) {
         alarmFired.current = true;
         audioRef.current?.play().catch(() => {});
+        
+        // 👈 إرسال إشعار المتصفح إذا كان مفعل
+        if (settings.flightAlarm) {
+          sendNotification(`✈️ Time to fly to ${flight.destination.toUpperCase()}!`, {
+            body: `Only ${Math.floor(r / 60)} minutes left to depart. Click to open Travel Agency.`,
+          });
+        }
       }
     }, 1000);
     return () => clearInterval(id);
-  }, [flight]);
+  }, [flight, settings.flightAlarm, sendNotification]);
 
-if (!flight || remaining === null || remaining <= 0) {
+  if (!flight || remaining === null || remaining <= 0) {
     return flight ? (
       <div className="glass-panel p-5 text-center text-gray-400 flex items-center justify-center h-full">
         Scheduled flight departed / window passed.
@@ -62,7 +74,6 @@ if (!flight || remaining === null || remaining <= 0) {
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
           >
-            
               <a href="https://www.torn.com/travelagency.php"
               target="_blank"
               rel="noopener noreferrer"

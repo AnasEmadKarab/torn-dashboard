@@ -4,6 +4,9 @@ import { useTornUser } from "@/hooks/useTornUser";
 import { useXanaxPredictions } from "@/hooks/useXanaxPredictions";
 import { getTopFlights, FlightOption } from "@/lib/flight-rankings";
 
+
+import NotificationSettings from "@/components/NotificationSettings";
+import WeaverTraders from "@/components/WeaverTraders";
 import StatsPanel from "@/components/StatsPanel";
 import CooldownTimers from "@/components/CooldownTimers";
 import PropertyCard from "@/components/PropertyCard";
@@ -55,10 +58,14 @@ export default function Dashboard() {
   const topFlights = xanax ? getTopFlights(xanax.rawUk, xanax.rawJapan, myTravelTimeLeft, flightType) : [];
 
   return (
+
     <div className="min-h-screen p-4 md:p-6 max-w-7xl mx-auto space-y-4 md:space-y-6">
+
       <h1 className="text-2xl md:text-3xl font-bold text-cyan-300 mb-2 md:mb-4 text-center md:text-left">
         Torn Smart Dashboard
       </h1>
+
+      <NotificationSettings />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
         <StatsPanel bars={user.bars} />
@@ -78,8 +85,12 @@ export default function Dashboard() {
           booster: user.cooldowns?.booster ?? 0,
         }}
       />
-
       <TravelRadar travel={user.travel} />
+      
+      {user.travel?.time_left === 0 && user.travel?.destination === "Torn" && (
+        <WeaverTraders />
+      )}
+      
       <OCFilterList crimes={user.organizedcrimes ?? []} />
 
       {xanax && (
@@ -91,7 +102,6 @@ export default function Dashboard() {
             rawJapan={xanax.rawJapan} 
           />
           
-          {/* 👈 أزرار اختيار نوع الرحلة */}
           <div className="flex justify-center md:justify-start gap-2 mb-2">
             <button 
               onClick={() => handleFlightTypeChange("standard")}
@@ -113,6 +123,8 @@ export default function Dashboard() {
           </div>
         </>
       )}
+
+      
     </div>
   );
 }
