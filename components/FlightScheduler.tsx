@@ -6,8 +6,9 @@ interface Props {
   onSelect: (flight: FlightOption) => void;
 }
 
+// 👈 شلنا الثواني عشان يطابق الجراف 100%
 function formatTime(ts: number) {
-  return new Date(ts * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  return new Date(ts * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
 export default function FlightScheduler({ flights, onSelect }: Props) {
@@ -19,17 +20,15 @@ export default function FlightScheduler({ flights, onSelect }: Props) {
       <ul className="space-y-2">
         {flights.map((f, index) => (
             <li
-              // استخدمنا الاندكس مع الوجهة عشان نعمل مفتاح فريد بدل f.id
               key={`${f.destination}-${index}`} 
               onClick={() => onSelect(f)}
               className="bg-white/5 hover:bg-cyan-500/20 rounded-lg p-3 flex justify-between items-center cursor-pointer transition-colors"
             >
               <span className="font-medium">
-                {/* تعديل الـ country لـ destination */}
-                {f.destination === "uk" ? "GB UK" : "JP Japan"}
+                {/* 👈 دعم كندا والأسماء الصحيحة */}
+                {f.destination === "uk" ? "🇬🇧 GB UK" : f.destination === "japan" ? "🇯🇵 JP Japan" : "🇨🇦 CA Canada"}
               </span>
               <span className="text-sm text-gray-300">
-                {/* تعديل الـ leaveTime لـ departureTime */}
                 Leave: <span className="font-mono text-cyan-300">{formatTime(f.departureTime)}</span>
                 {" → "}
                 Restock: <span className="font-mono text-pink-300">{formatTime(f.restockTime)}</span>

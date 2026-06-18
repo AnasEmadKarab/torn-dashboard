@@ -5,9 +5,13 @@ import { leaveTimeForArrival } from "@/lib/travel-data";
 interface ChartProps {
   ukData: any[];
   japanData: any[];
+  canData: any[];
   rawUk?: any;
   rawJapan?: any;
-  flightType?: "standard" | "airstrip"; // 👈 ضفناها عشان التولتيب يحسب صح
+  rawCan?: any;
+  highestSellPrice?: number;
+  flightType?: "standard" | "airstrip";
+  showCanada: boolean; // 👈 ضفنا هاد البروب للتحكم
 }
 
 function formatTime(ts: number) {
@@ -23,19 +27,18 @@ function CustomTooltip({ active, payload, label, flightType }: any) {
         Restock Time: <span className="text-white font-bold">{formatTime(label)}</span>
       </p>
       {payload.map((entry: any) => {
-        const country = entry.name.toLowerCase() as "uk" | "japan";
+        const country = entry.name.toLowerCase() as "uk" | "japan" | "can"; 
         const isSpike = entry.payload.isRestock;
         const stockValue = Math.round(entry.value);
         
         return (
-          <div key={entry.name} className="mb-2 last:mb-0">
+          <div key={entry.name} className="mb-3 last:mb-0">
             <p style={{ color: entry.color }} className="font-bold flex justify-between gap-4">
               <span>{entry.name.toUpperCase()}:</span> 
               <span>{stockValue.toLocaleString()} stock</span>
             </p>
-            {/* 👈 ما بنعرض وقت المغادرة إلا على قمة الستوك */}
             {isSpike && stockValue > 0 && (
-              <p className="text-emerald-300 font-semibold text-xs mt-1 bg-emerald-900/30 px-2 py-1 rounded">
+              <p className="text-emerald-300 font-semibold text-xs mt-1 bg-emerald-900/30 px-2 py-1 rounded text-center">
                 ✈ Leave Torn at {formatTime(leaveTimeForArrival(label, country, flightType || "standard"))}
               </p>
             )}
@@ -46,71 +49,63 @@ function CustomTooltip({ active, payload, label, flightType }: any) {
   );
 }
 
-export default function XanaxTimelineChart({ ukData, japanData, rawUk, rawJapan, flightType = "standard" }: ChartProps) {
+// 👈 استقبلنا showCanada هنا
+export default function XanaxTimelineChart({ ukData, japanData, canData, rawUk, rawJapan, rawCan, highestSellPrice, flightType = "standard", showCanada }: ChartProps) {
   const now = Math.floor(Date.now() / 1000);
+
+  const renderCountryCard = (title: string, raw: any, colorClass: string, borderClass: string) => (
+    <div className={`flex flex-col p-3 bg-gray-900/60 rounded-lg border ${borderClass} shadow-inner`}>
+      <span className={`${colorClass} font-bold border-b border-gray-700/50 pb-1 mb-2 text-center text-lg`}>{title}</span>
+      <div className="text-xs text-gray-400 flex justify-between gap-2 mb-1">
+        <span>Current Stock:</span> <span className="text-white font-bold">{raw?.current_quantity?.toLocaleString() ?? 0}</span>
+      </div>
+      <div className="text-xs text-gray-400 flex justify-between gap-2 mb-1">
+        <span>Last Restock:</span> 
+        <span className="text-gray-300 text-right">
+          {formatTime(raw?.last_restock_time)} <br/>
+          <span className="text-[10px] text-gray-500">(predicted at {formatTime(raw?.last_predicted_restock)})</span>
+        </span>
+      </div>
+      <div className="text-xs text-gray-400 flex justify-between gap-2 mb-1">
+        <span>StockOut In:</span> <span className="text-pink-300 font-semibold">{raw?.empty_duration_minutes ?? 0} mins</span>
+      </div>
+      <div className="text-xs text-gray-400 flex justify-between gap-2 mb-1 border-b border-gray-800 pb-2">
+        <span>Next Expected:</span> <span className={`${colorClass} font-bold`}>{formatTime(raw?.next_predicted_restock)}</span>
+      </div>
+      <div className="text-xs text-gray-400 flex justify-between gap-2 mt-2">
+        <span>Buy Price:</span> <span className="text-white font-mono">${raw?.cost?.toLocaleString() ?? "N/A"}</span>
+      </div>
+      <div className="text-xs text-gray-400 flex justify-between gap-2 mt-1 border-b border-gray-800 pb-2">
+        <span>Sell (Top Trader):</span> <span className="text-yellow-400 font-mono">${highestSellPrice?.toLocaleString() ?? "N/A"}</span>
+      </div>
+      <div className="text-xs text-emerald-400 flex justify-between gap-2 font-bold mt-2 bg-emerald-900/20 p-1.5 rounded border border-emerald-800/30">
+        <span>Profit/Item:</span> <span>${raw?.profit?.toLocaleString() ?? "N/A"}</span>
+      </div>
+    </div>
+  );
 
   return (
     <div className="glass-panel p-5">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-        <h2 className="text-lg font-semibold text-cyan-300 mb-4 md:mb-0">Xanax Stock</h2>
-        
-        <div className="flex w-full md:w-auto gap-4 bg-gray-900/50 p-3 rounded-lg border border-gray-700/50 shadow-inner">
-          <div className="flex-1 md:flex-none flex flex-col">
-            <span className="text-cyan-400 font-bold border-b border-cyan-800/50 pb-1 mb-1">🇬🇧 UK</span>
-            <div className="text-xs text-gray-400 flex justify-between gap-4">
-              <span>Current Stock:</span> <span className="text-white font-bold">{rawUk?.quantity?.toLocaleString() ?? 0}</span>
-            </div>
-            <div className="text-xs text-gray-400 flex justify-between gap-4">
-              <span>Last Restock:</span> <span className="text-gray-300">{formatTime(rawUk?.last_restock)}</span>
-            </div>
-            <div className="text-xs text-gray-400 flex justify-between gap-4">
-              <span>Next Expected:</span> <span className="text-cyan-300 font-bold">{formatTime(rawUk?.next_expected)}</span>
-            </div>
-            <div className="text-xs text-gray-400 flex justify-between gap-4 mt-1 pt-1 border-t border-gray-800">
-              <span>Price:</span> <span className="text-cyan-200">${rawUk?.cost?.toLocaleString() ?? "N/A"}</span>
-            </div>
-          </div>
-          
-          <div className="w-px bg-gray-700 hidden md:block mx-2"></div>
-          
-          <div className="flex-1 md:flex-none flex flex-col border-l border-gray-700 md:border-none pl-4 md:pl-0">
-            <span className="text-pink-400 font-bold border-b border-pink-800/50 pb-1 mb-1">🇯🇵 Japan</span>
-            <div className="text-xs text-gray-400 flex justify-between gap-4">
-              <span>Current Stock:</span> <span className="text-white font-bold">{rawJapan?.quantity?.toLocaleString() ?? 0}</span>
-            </div>
-            <div className="text-xs text-gray-400 flex justify-between gap-4">
-              <span>Last Restock:</span> <span className="text-gray-300">{formatTime(rawJapan?.last_restock)}</span>
-            </div>
-            <div className="text-xs text-gray-400 flex justify-between gap-4">
-              <span>Next Expected:</span> <span className="text-pink-300 font-bold">{formatTime(rawJapan?.next_expected)}</span>
-            </div>
-            <div className="text-xs text-gray-400 flex justify-between gap-4 mt-1 pt-1 border-t border-gray-800">
-              <span>Price:</span> <span className="text-pink-200">${rawJapan?.cost?.toLocaleString() ?? "N/A"}</span>
-            </div>
-          </div>
+      <div className="mb-6">
+        <h2 className="text-xl font-bold text-cyan-300 mb-4 text-center md:text-left">Xanax Market Radar</h2>
+        <div className={`grid gap-4 ${showCanada ? 'grid-cols-1 md:grid-cols-3' : 'grid-cols-1 md:grid-cols-2'}`}>
+          {renderCountryCard("🇬🇧 UK", rawUk, "text-cyan-400", "border-cyan-800/50")}
+          {renderCountryCard("🇯🇵 Japan", rawJapan, "text-pink-400", "border-pink-800/50")}
+          {showCanada && renderCountryCard("🇨🇦 Canada", rawCan, "text-emerald-400", "border-emerald-800/50")} 
         </div>
       </div>
 
-      <div className="w-full overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
-        <div style={{ minWidth: "200%", height: "240px" }}>
+      <div className="w-full overflow-x-auto pb-2">
+        <div style={{ minWidth: "300%", height: "180px" }}>
           <ResponsiveContainer width="100%" height="100%">
             <LineChart>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-              <XAxis 
-                dataKey="timestamp" 
-                type="number" 
-                domain={[now, 'dataMax']} 
-                allowDataOverflow={true}
-                tickFormatter={formatTime} 
-                stroke="#666" 
-                minTickGap={40} 
-              />
-              <YAxis hide={true} domain={[0, 'dataMax + 200']} allowDataOverflow={true} />
+              <XAxis dataKey="timestamp" type="number" domain={[now, 'dataMax']} tickFormatter={formatTime} stroke="#666" />
+              <YAxis hide={true} />
               <Tooltip content={<CustomTooltip flightType={flightType} />} />
-              <ReferenceLine x={now} stroke="#888" strokeDasharray="4 4" label={{ value: "Now", position: "top", fill: "#888", fontSize: 11 }} />
-              
               <Line data={ukData} type="linear" dataKey="predictedStock" stroke="#00f0ff" strokeWidth={2} dot={false} name="UK" />
               <Line data={japanData} type="linear" dataKey="predictedStock" stroke="#ff2d75" strokeWidth={2} dot={false} name="Japan" />
+              {showCanada && <Line data={canData} type="linear" dataKey="predictedStock" stroke="#10b981" strokeWidth={2} dot={false} name="CAN" />}
             </LineChart>
           </ResponsiveContainer>
         </div>

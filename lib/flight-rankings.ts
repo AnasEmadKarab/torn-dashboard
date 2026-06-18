@@ -1,55 +1,58 @@
-import { calculateFlightBuffer } from "./predictions";
+import { calculateFlightBuffer, RestockPoint } from "./predictions";
 
 export interface FlightOption {
-  destination: "uk" | "japan";
+  destination: "uk" | "japan" | "can";
   departureTime: number;
   arrivalTime: number;
   restockTime: number;
 }
 
 export function getTopFlights(
-  ukData: any, 
-  japanData: any, 
+  ukPoints: RestockPoint[],    // 👈 صرنا نستقبل بيانات الجراف المعالجة
+  japanPoints: RestockPoint[], // 👈 بدل الداتا الخام
+  canPoints: RestockPoint[],
   userTravelTimeLeft: number = 0,
   flightType: "standard" | "airstrip" = "standard" 
 ): FlightOption[] {
-  if (!ukData || !japanData) return [];
+  if (!ukPoints || !japanPoints) return [];
 
   const availableDepartureTime = calculateFlightBuffer(userTravelTimeLeft);
   
-  // توحيد الأوقات بالثانية مع ملف travel-data.ts
   const flightDurations = {
-    standard: { uk: 6660, japan: 9480 },
-    airstrip: { uk: 4680, japan: 6660 } 
+    standard: { uk: 9540, japan: 13500, can: 2460 },
+    airstrip: { uk: 6660, japan: 9480, can: 1740 } 
   };
 
   const flights: FlightOption[] = [];
+  
+  const countries = [
+    { id: "uk", points: ukPoints },
+    { id: "japan", points: japanPoints },
+    { id: "can", points: canPoints }
+  ] as const;
 
-  for (const country of ["uk", "japan"] as const) {
-    const data = country === "uk" ? ukData : japanData;
-    const duration = flightDurations[flightType][country]; 
+  for (const { id: country, points } of countries) {
+    if (!points || points.length === 0) continue;
     
-    // اللحظة اللي بينزل فيها الستوك بالملي
-    const restockTime = data.next_expected; 
-    const idealDeparture = restockTime - duration;
+    const duration = flightDurations[flightType][country as "uk" | "japan" | "can"]; 
+    
+    // 👈 السحر هون: بناخذ اللحظات اللي بيضرب فيها الستوك القمة (Restock) من الجراف مباشرة
+    const restocks = points.filter(p => p.isRestock);
 
-    if (idealDeparture >= availableDepartureTime) {
-      flights.push({
-        destination: country,
-        departureTime: idealDeparture,
-        arrivalTime: restockTime, // الوصول متزامن تماماً مع الستوك
-        restockTime: restockTime,
-      });
-    } else {
-      const nextCycleRestock = restockTime + (country === "uk" ? 7200 : 9900);
-      flights.push({
-        destination: country,
-        departureTime: nextCycleRestock - duration,
-        arrivalTime: nextCycleRestock,
-        restockTime: nextCycleRestock,
-      });
+    for (const restock of restocks) {
+      const idealDeparture = restock.timestamp - duration;
+
+      if (idealDeparture >= availableDepartureTime) {
+        flights.push({
+          destination: country as "uk" | "japan" | "can",
+          departureTime: idealDeparture,
+          arrivalTime: restock.timestamp,
+          restockTime: restock.timestamp,
+        });
+      }
     }
   }
 
-  return flights.sort((a, b) => a.departureTime - b.departureTime);
+  // ترتيب الرحلات وإرجاع أفضل 5
+  return flights.sort((a, b) => a.departureTime - b.departureTime).slice(0, 5);
 }

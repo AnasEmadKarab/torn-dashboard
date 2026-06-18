@@ -7,60 +7,78 @@ import { useNotifications } from "./useNotifications";
 export function useXanaxPredictions() {
   const { settings, sendNotification } = useNotifications();
   
-  // نستخدم useRef عشان نحتفظ بوقت الستوك القديم ونقارنه بالجديد
   const prevRestockUK = useRef<number | null>(null);
   const prevRestockJP = useRef<number | null>(null);
+  const prevRestockCAN = useRef<number | null>(null); // 👈 ضفنا ذاكرة لكندا
 
   const query = useQuery({
     queryKey: ["xanax-predictions"],
     queryFn: async () => {
-      const res = await fetch("/api/yata/xanax");
-      if (!res.ok) throw new Error("Failed to fetch YATA Xanax data");
-      const raw = await res.json();
+      // 1. جلب بيانات الزاناكس من الـ API تبعنا (اللي عدلناه بالباك إند)
+      const res = await fetch("/api/cron/update"); // تأكد إن هاد الرابط هو اللي بيرجع بيانات Redis
+      if (!res.ok) throw new Error("Failed to fetch Xanax data");
+      const json = await res.json();
+      const raw = json.data; // الباك إند صار يرجع الداتا جوا object اسمه data
 
-      const ukPrediction = projectXanaxTimeline(
-        "uk",
-        raw.uk.quantity,
-        raw.uk.timestamp,
-        raw.uk.next_expected,
-        raw.uk.max_stock
-      );
-      
-      const japanPrediction = projectXanaxTimeline(
-        "japan",
-        raw.japan.quantity,
-        raw.japan.timestamp,
-        raw.japan.next_expected,
-        raw.japan.max_stock
-      );
+      // 2. جلب بيانات التجار (Weaver) عشان ناخذ أعلى سعر بيع
+      let highestSellPrice = 835000; // سعر افتراضي احتياطي
+      try {
+        const weaverRes = await fetch("/api/weaver");
+        if (weaverRes.ok) {
+          const weaverJson = await weaverRes.json();
+          const traders = weaverJson.data || [];
+          if (traders.length > 0) {
+            // سحب أعلى سعر بين التوب 3 تجار
+            highestSellPrice = Math.max(...traders.map((t: any) => t.price));
+          }
+        }
+      } catch (e) {
+        console.error("Failed to fetch traders for profit calculation");
+      }
+
+      // 3. حساب الربح الحي (Live Profit) لكل دولة
+      const calculateProfit = (cost: number) => cost > 0 ? (highestSellPrice - cost) : 0;
+      if (raw.uk) raw.uk.profit = calculateProfit(raw.uk.cost);
+      if (raw.japan) raw.japan.profit = calculateProfit(raw.japan.cost);
+      if (raw.can) raw.can.profit = calculateProfit(raw.can.cost);
+
+      // 4. توليد الجراف لكل دولة بناءً على المتغيرات الجديدة
+      const ukPrediction = projectXanaxTimeline("uk", raw.uk.current_quantity, raw.uk.last_update, raw.uk.next_predicted_restock, raw.uk.stats.empirical_max_stock);
+      const japanPrediction = projectXanaxTimeline("japan", raw.japan.current_quantity, raw.japan.last_update, raw.japan.next_predicted_restock, raw.japan.stats.empirical_max_stock);
+      const canPrediction = projectXanaxTimeline("can", raw.can.current_quantity, raw.can.last_update, raw.can.next_predicted_restock, raw.can.stats.empirical_max_stock);
 
       return { 
         uk: ukPrediction, 
         japan: japanPrediction, 
+        can: canPrediction, // 👈 كندا
         rawUk: raw.uk, 
-        rawJapan: raw.japan 
+        rawJapan: raw.japan,
+        rawCan: raw.can,    // 👈 كندا
+        highestSellPrice    // 👈 رح نمرره للواجهة عشان نطبعه
       };
     },
-    refetchInterval: 60000, // تحديث كل دقيقة
+    refetchInterval: 60000, 
   });
 
-  // 👈 مراقب الستوك الذكي: بيشتغل كل ما تجي داتا جديدة من السيرفر
   useEffect(() => {
     if (query.data) {
-      const currentUkRestock = query.data.rawUk.last_restock;
-      const currentJpRestock = query.data.rawJapan.last_restock;
+      const currentUkRestock = query.data.rawUk?.last_restock_time;
+      const currentJpRestock = query.data.rawJapan?.last_restock_time;
+      const currentCanRestock = query.data.rawCan?.last_restock_time;
 
-      // إذا كان في ستوك قديم محفوظ، والستوك الجديد وقته أحدث، والإشعار مفعل
       if (prevRestockUK.current && currentUkRestock > prevRestockUK.current && settings.stockDrop) {
         sendNotification("🇬🇧 UK Xanax Restocked!", { body: "Xanax is now available in the UK! Check the chart." });
       }
       if (prevRestockJP.current && currentJpRestock > prevRestockJP.current && settings.stockDrop) {
         sendNotification("🇯🇵 Japan Xanax Restocked!", { body: "Xanax is now available in Japan! Check the chart." });
       }
+      if (prevRestockCAN.current && currentCanRestock > prevRestockCAN.current && settings.stockDrop) {
+        sendNotification("🇨🇦 Canada Xanax Restocked!", { body: "Xanax is now available in Canada! Check the chart." });
+      }
 
-      // تحديث الذاكرة للوقت الجديد
       prevRestockUK.current = currentUkRestock;
       prevRestockJP.current = currentJpRestock;
+      prevRestockCAN.current = currentCanRestock;
     }
   }, [query.data, settings.stockDrop, sendNotification]);
 

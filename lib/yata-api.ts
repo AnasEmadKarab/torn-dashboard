@@ -1,4 +1,3 @@
-// lib/yata-api.ts
 const YATA_BASE = "https://yata.yt/api/v1";
 
 export interface YataStockItem {
@@ -17,6 +16,7 @@ export interface YataCountryData {
 export interface YataTravelExport {
   uk: YataCountryData;
   japan: YataCountryData;
+  can: YataCountryData; // ضفنا كندا
 }
 
 export async function fetchYataTravelExport(): Promise<YataTravelExport> {
@@ -24,12 +24,13 @@ export async function fetchYataTravelExport(): Promise<YataTravelExport> {
   if (!res.ok) throw new Error(`YATA API error: ${res.status}`);
   const raw = await res.json();
 
-  const countries = { uk: "United Kingdom", japan: "Japan" };
+  // ضفنا كندا للقاموس
+  const countries = { uk: "United Kingdom", japan: "Japan", can: "Canada" };
   const result: Partial<YataTravelExport> = {};
 
   for (const [key, name] of Object.entries(countries)) {
     const country = raw.stocks?.[name];
-    result[key as "uk" | "japan"] = {
+    result[key as "uk" | "japan" | "can"] = {
       name,
       update: country?.update ?? Date.now() / 1000,
       stocks: country?.stocks ?? [],
