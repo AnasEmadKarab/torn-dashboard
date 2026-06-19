@@ -4,6 +4,7 @@ import { useTornUser } from "@/hooks/useTornUser";
 import { useXanaxPredictions } from "@/hooks/useXanaxPredictions";
 import { getTopFlights, FlightOption } from "@/lib/flight-rankings";
 import StatsPanel from "@/components/StatsPanel";
+import WeaverTraders from "@/components/WeaverTraders"; // 👈 ضيف هذا السطر
 import CooldownTimers from "@/components/CooldownTimers";
 import PropertyCard from "@/components/PropertyCard";
 import MoneyVaultCard from "@/components/MoneyVaultCard";
@@ -94,7 +95,9 @@ const topFlights = xanax ? getTopFlights(xanax.uk, xanax.japan, showCanada ? xan
       />
 
       <TravelRadar travel={user.travel} />
+      <WeaverTraders /> // 👈 ضيفه هون عشان يرجع يظهر
       <OCFilterList crimes={user.organizedcrimes ?? []} />
+
 
       {xanax && (
         <>
