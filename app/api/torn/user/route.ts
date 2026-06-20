@@ -1,5 +1,7 @@
 import { tornFetch } from "@/lib/torn-api";
 
+export const dynamic = 'force-dynamic'; 
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const apiKey = searchParams.get("key");
@@ -9,28 +11,31 @@ export async function GET(request: Request) {
   }
 
   try {
-    // المحاولة الأولى: طلب الداتا كاملة (بافتراض إن اللاعب عنده فاكشن)
-    const data = await tornFetch<any>("user", apiKey, "bars,cooldowns,money,travel,properties,organizedcrimes");
+    // 👈 السحر هنا: طلبنا organizedcrimes (الكل) و organizedcrime (المشارك فيها حالياً) مع بعض
+    const data = await tornFetch<any>("user", apiKey, `bars,cooldowns,money,travel,properties,organizedcrimes,organizedcrime&_t=${Date.now()}`);
 
     return Response.json(data, { 
       headers: { 
-        "Cache-Control": "no-store",
+        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "Pragma": "no-cache",
+        "Expires": "0",
         "Access-Control-Allow-Origin": "*" 
       } 
     });
   } catch (e: any) {
-    // 👈 السحر هنا: إذا كان الخطأ بسبب أن اللاعب ليس لديه فاكشن (Error 6)
-    if (e.message.includes("Incorrect ID-entity relation")) {
+    if (e.message.includes("Incorrect ID-entity relation") || e.message.includes("Error 6")) {
       try {
-        // المحاولة الثانية "الآمنة": جلب بيانات اللاعب الأساسية فقط بدون الجرائم المنظمة
-        const safeData = await tornFetch<any>("user", apiKey, "bars,cooldowns,money,travel,properties");
+        const safeData = await tornFetch<any>("user", apiKey, `bars,cooldowns,money,travel,properties&_t=${Date.now()}`);
         
-        // نمرر مصفوفة فارغة للجرائم عشان الواجهة تشتغل طبيعي وتقولك "أنت مش بفاكشن"
+        // تصفير الاثنين إذا اللاعب بدون فاكشن
         safeData.organizedcrimes = []; 
+        safeData.organizedCrime = null;
         
         return Response.json(safeData, { 
           headers: { 
-            "Cache-Control": "no-store",
+            "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0",
             "Access-Control-Allow-Origin": "*" 
           } 
         });
@@ -39,7 +44,6 @@ export async function GET(request: Request) {
       }
     }
 
-    // إذا كان خطأ آخر غير الفاكشن، نطبعه ونعرضه
     console.error("[/api/torn/user] ERROR:", e.message);
     return Response.json({ error: e.message }, { status: 500 });
   }

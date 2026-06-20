@@ -1,0 +1,11 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/update",
+      "schedule": "* * * * *",
+      "headers": {
+        "Authorization": "Bearer ${Anas123}"
+      }
+    }
+  ]
+}

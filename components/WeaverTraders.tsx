@@ -1,8 +1,16 @@
-//components/WeaverTraders.tsx
+// components/WeaverTraders.tsx
 "use client";
 import { useQuery } from "@tanstack/react-query";
 
-export default function WeaverTraders() {
+// 👈 ضفنا interface لاستقبال وجهة اللاعب
+interface Props {
+  currentDestination?: string;
+}
+
+export default function WeaverTraders({ currentDestination = "Torn" }: Props) {
+  // 👈 التحقق إذا كان اللاعب في تورن أو لا
+  const isCurrentlyInTorn = currentDestination === "Torn";
+
   const { data, isLoading, error } = useQuery({
     queryKey: ["weaver-traders"],
     queryFn: async () => {
@@ -10,11 +18,19 @@ export default function WeaverTraders() {
       if (!res.ok) throw new Error("Failed to fetch traders");
       return res.json();
     },
-    refetchInterval: 60000, // تحديث الداتا كل دقيقة
+    enabled: isCurrentlyInTorn, 
+    
+    // 👈 التعديلات السحرية:
+    staleTime: 3600000, // الداتا تعتبر "طازجة" لمدة ساعة كاملة
+    refetchInterval: false, // إلغاء التحديث التلقائي المستمر
+    refetchOnWindowFocus: false, // منع التحديث عند التنقل بين نوافذ المتصفح
   });
 
+  // إذا كان اللاعب مو بتورن، ما نعرض الكومبوننت نهائياً
+  if (!isCurrentlyInTorn) return null;
+
   if (isLoading) return <div className="glass-panel p-5 text-gray-400 animate-pulse border-t-2 border-emerald-500/30">Loading top traders...</div>;
-  if (error || !data?.success) return null; // إخفاء المكون في حال حدوث خطأ
+  if (error || !data?.success) return null;
 
   const traders = data.data || [];
 

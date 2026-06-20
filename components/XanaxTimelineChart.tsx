@@ -70,7 +70,15 @@ export default function XanaxTimelineChart({ ukData, japanData, canData, rawUk, 
         <span>StockOut In:</span> <span className="text-pink-300 font-semibold">{raw?.empty_duration_minutes ?? 0} mins</span>
       </div>
       <div className="text-xs text-gray-400 flex justify-between gap-2 mb-1 border-b border-gray-800 pb-2">
-        <span>Next Expected:</span> <span className={`${colorClass} font-bold`}>{formatTime(raw?.next_predicted_restock)}</span>
+        <span>Next Expected:</span> 
+        <span className={`${colorClass} font-bold text-right`}>
+          {formatTime(raw?.next_predicted_restock)} <br/>
+          {raw?.droqs_predicted_restock > 0 && (
+             <span className="text-[10px] text-gray-500 font-normal block mt-0.5">
+               (DroqsDB: {formatTime(raw?.droqs_predicted_restock)})
+             </span>
+          )}
+        </span>
       </div>
       <div className="text-xs text-gray-400 flex justify-between gap-2 mt-2">
         <span>Buy Price:</span> <span className="text-white font-mono">${raw?.cost?.toLocaleString() ?? "N/A"}</span>
@@ -95,14 +103,24 @@ export default function XanaxTimelineChart({ ukData, japanData, canData, rawUk, 
         </div>
       </div>
 
-      <div className="w-full overflow-x-auto pb-2">
+      <div className="w-full overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-cyan-600 hover:scrollbar-thumb-cyan-400 scrollbar-track-white/5 scrollbar-thumb-rounded-full">
         <div style={{ minWidth: "300%", height: "180px" }}>
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="99%" height="100%">
             <LineChart>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-              <XAxis dataKey="timestamp" type="number" domain={[now, 'dataMax']} tickFormatter={formatTime} stroke="#666" />
-              <YAxis hide={true} />
+              <XAxis 
+                dataKey="timestamp" 
+                type="number" 
+                domain={[now, 'dataMax']} 
+                allowDataOverflow={true}
+                tickFormatter={formatTime} 
+                stroke="#666" 
+                minTickGap={60}
+              />
+              <YAxis hide={true} domain={[0, 3000]} />
               <Tooltip content={<CustomTooltip flightType={flightType} />} />
+              <ReferenceLine x={now} stroke="#888" strokeDasharray="4 4" />
+              
               <Line data={ukData} type="linear" dataKey="predictedStock" stroke="#00f0ff" strokeWidth={2} dot={false} name="UK" />
               <Line data={japanData} type="linear" dataKey="predictedStock" stroke="#ff2d75" strokeWidth={2} dot={false} name="Japan" />
               {showCanada && <Line data={canData} type="linear" dataKey="predictedStock" stroke="#10b981" strokeWidth={2} dot={false} name="CAN" />}

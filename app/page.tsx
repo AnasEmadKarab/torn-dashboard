@@ -95,8 +95,10 @@ const topFlights = xanax ? getTopFlights(xanax.uk, xanax.japan, showCanada ? xan
       />
 
       <TravelRadar travel={user.travel} />
-      <WeaverTraders />
-      <OCFilterList crimes={user.organizedcrimes ?? []} />
+      {user.travel?.destination === "Torn" && (user.travel?.time_left ?? 0) === 0 && (
+        <WeaverTraders currentDestination={user.travel?.destination} />
+      )}
+      <OCFilterList allCrimes={user.organizedcrimes ?? []} activeCrime={user.organizedCrime} />
 
 
       {xanax && (
