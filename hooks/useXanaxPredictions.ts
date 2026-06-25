@@ -21,37 +21,36 @@ export function useXanaxPredictions() {
       const json = await cronRes.json();
       const raw = json.data;
 
-      // 2. السحر هنا: جلب سعر التريدرز من الكاش (يُحدث مرة كل ساعة فقط)
-      let highestSellPrice = 835000;
-      const now = Date.now();
-      const cachedWeaver = typeof window !== "undefined" ? localStorage.getItem("weaver_cached_price") : null;
+      let highestSellPrice = 0; // خليها 0 بالبداية
+      try {
+        const weaverRes = await fetch("/api/weaver");
+        if (weaverRes.ok) {
+          const weaverJson = await weaverRes.json();
+          let deals = (weaverJson.deals || []).filter((d: any) => d.price < 833000); 
+          
+          // فلترة البلاك ليست (جلبها من اللوكل ستورج)
+          const blacklist = typeof window !== "undefined" ? JSON.parse(localStorage.getItem("torn_trader_blacklist") || "[]") : [];
+          deals = deals.filter((d: any) => !blacklist.includes(d.playerId));
 
-      if (cachedWeaver) {
-        const parsed = JSON.parse(cachedWeaver);
-        // إذا كان الكاش عمره أقل من ساعة (3,600,000 ملي ثانية)، استخدمه!
-        if (now - parsed.timestamp < 3600000) {
-          highestSellPrice = parsed.price;
-        }
-      }
+          // 1. الترتيب حسب السعر الأعلى وأخذ أفضل 10
+          deals.sort((a: any, b: any) => b.price - a.price);
+          const top10 = deals.slice(0, 10);
 
-      // إذا ما في كاش، أو مرّت ساعة، وقتها بس بنروح نسأل الـ API
-      if (highestSellPrice === 835000) {
-        try {
-          const weaverRes = await fetch("/api/weaver");
-          if (weaverRes.ok) {
-            const weaverJson = await weaverRes.json();
-            const traders = weaverJson.data || [];
-            if (traders.length > 0) {
-              highestSellPrice = Math.max(...traders.map((t: any) => t.price));
-              // حفظ السعر الجديد مع وقت الحفظ
-              if (typeof window !== "undefined") {
-                localStorage.setItem("weaver_cached_price", JSON.stringify({ price: highestSellPrice, timestamp: now }));
-              }
-            }
+          // 2. الترتيب حسب التقييم وأخذ أفضل 3
+          top10.sort((a: any, b: any) => {
+            const scoreA = (a.rating.upvotes - a.rating.downvotes);
+            const scoreB = (b.rating.upvotes - b.rating.downvotes);
+            return scoreB - scoreA;
+          });
+          const top3 = top10.slice(0, 3);
+
+          // 3. أخذ أعلى سعر بين هدول الـ 3 (هاد هو الرقم اللي بدك ياه)
+          if (top3.length > 0) {
+            highestSellPrice = Math.max(...top3.map((t: any) => t.price));
           }
-        } catch (e) {
-          console.error("Failed to parse weaver data");
         }
+      } catch (e) {
+        console.error("Failed to sync trader price");
       }
 
       // 3. حساب الربح الحي
