@@ -91,6 +91,7 @@ export function useXanaxPredictions() {
     refetchInterval: 60000, 
   });
 
+
   useEffect(() => {
     if (query.data && query.data.rawUk) {
       const currentUkRestock = query.data.rawUk?.last_restock_time;
@@ -98,15 +99,16 @@ export function useXanaxPredictions() {
       const currentCanRestock = query.data.rawCan?.last_restock_time;
 
       if (prevRestockUK.current && currentUkRestock > prevRestockUK.current && settings.stockDrop) {
-        sendNotification("🇬🇧 UK Xanax Restocked!", { body: "Xanax is now available in the UK! Check the chart." });
+        sendNotification("Habibi! Stock Alert 🇬🇧", { body: "Yala habibi yala! Xanax is dropped in UK! Hurry up!" });
       }
       if (prevRestockJP.current && currentJpRestock > prevRestockJP.current && settings.stockDrop) {
-        sendNotification("🇯🇵 Japan Xanax Restocked!", { body: "Xanax is now available in Japan! Check the chart." });
+        sendNotification("Habibi! Stock Alert 🇯🇵", { body: "Yala habibi yala! Xanax is dropped in Japan! Go grab it!" });
       }
       if (prevRestockCAN.current && currentCanRestock > prevRestockCAN.current && settings.stockDrop) {
-        sendNotification("🇨🇦 Canada Xanax Restocked!", { body: "Xanax is now available in Canada! Check the chart." });
+        sendNotification("Habibi! Stock Alert 🇨🇦", { body: "Yala habibi yala! Xanax is dropped in Canada! Don't miss out!" });
       }
 
+      // تحديث القيم السابقة
       prevRestockUK.current = currentUkRestock;
       prevRestockJP.current = currentJpRestock;
       prevRestockCAN.current = currentCanRestock;

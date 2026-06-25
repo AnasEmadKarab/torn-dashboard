@@ -46,15 +46,24 @@ export default function TravelRadar({ travel }: { travel: TravelData }) {
   }, [isTraveling]);
 
   // 3. تفعيل إشعار الوصول عند انتهاء الوقت (باستخدام المتغيرات الآمنة)
-  useEffect(() => {
+
+    useEffect(() => {
     if (remaining <= 0 && departed_at > 0 && !alarmFired.current) {
       alarmFired.current = true;
       audioRef.current?.play().catch(() => {});
       
-      if (settings.arrival && currentDestination !== "Torn") {
-        sendNotification(`🛬 Arrived in ${currentDestination}!`, {
-          body: "Click here to buy your items.",
-        });
+      if (settings.arrival) {
+        if (currentDestination !== "Torn") {
+          // إشعار الوصول للوجهة
+          sendNotification(`Habibi! Arrived in ${currentDestination} ✈️`, {
+            body: "Yala habibi yala! You have arrived! Time to grab those items!",
+          });
+        } else {
+          // إشعار الوصول لـ تورن (العودة)
+          sendNotification(`Habibi! Back in Torn 🏠`, {
+            body: "Welcome back habibi! Hope the trip was profitable!",
+          });
+        }
       }
     }
   }, [remaining, currentDestination, departed_at, settings.arrival, sendNotification]);

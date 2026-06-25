@@ -22,8 +22,8 @@ export default function DepartureAlarm({ flight }: { flight: FlightOption | null
         audioRef.current?.play().catch(() => {});
         
         if (settings.flightAlarm) {
-          sendNotification(`✈️ Time to fly to ${flight.destination.toUpperCase()}!`, {
-            body: `Only ${Math.floor(r / 60)} minutes left to depart. Click to open Travel Agency.`,
+          sendNotification(`Habibi! Flight Alert ✈️`, {
+            body: `Yala habibi yala! Only ${Math.floor(r / 60)} minutes left to depart to ${flight.destination.toUpperCase()}. Don't miss it!`,
           });
         }
       }
