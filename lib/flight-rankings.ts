@@ -19,8 +19,8 @@ export function getTopFlights(
   const availableDepartureTime = calculateFlightBuffer(userTravelTimeLeft);
   
   const flightDurations = {
-    standard: { uk: 9540, japan: 13500, can: 2460 },
-    airstrip: { uk: 6660, japan: 9480, can: 1740 } 
+    standard: { uk: 9060, japan: 12780, can: 2340 },
+    airstrip: { uk: 6360, japan: 8940, can: 1620 } 
   };
 
   const flights: FlightOption[] = [];
@@ -36,7 +36,6 @@ export function getTopFlights(
     
     const duration = flightDurations[flightType][country as "uk" | "japan" | "can"]; 
     
-    // 👈 السحر هون: بناخذ اللحظات اللي بيضرب فيها الستوك القمة (Restock) من الجراف مباشرة
     const restocks = points.filter(p => p.isRestock);
 
     for (const restock of restocks) {
