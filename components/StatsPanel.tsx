@@ -22,7 +22,6 @@ function StatBar({ label, current, max, color, fullTimeSeconds }: BarProps) {
         <span className="text-gray-300 font-medium">{label}</span>
         <div className="flex flex-col items-end">
           <span className="font-mono text-sm">{current}/{max}</span>
-          {/* كبرنا الخط هون وخليناه text-xs بدل text-[10px] */}
           <span className="text-xs text-gray-400 font-mono mt-1">
             {isFull ? <span className="text-emerald-400">Full</span> : `Full in: ${formatted}`}
           </span>
@@ -43,22 +42,25 @@ function StatBar({ label, current, max, color, fullTimeSeconds }: BarProps) {
 
 export default function StatsPanel({ bars }: { bars: any }) {
   return (
-    <div className="glass-panel p-5">
-      <h2 className="text-lg font-semibold mb-4 text-cyan-300">Vitals</h2>
-      <StatBar 
-        label="Energy" 
-        current={bars?.energy?.current || 0} 
-        max={bars?.energy?.maximum || 100} 
-        color="linear-gradient(90deg,#00f0ff,#0080ff)" 
-        fullTimeSeconds={bars?.energy?.full_time || 0}
-      />
-      <StatBar 
-        label="Nerve" 
-        current={bars?.nerve?.current || 0} 
-        max={bars?.nerve?.maximum || 100} 
-        color="linear-gradient(90deg,#ff2d75,#ff8c00)" 
-        fullTimeSeconds={bars?.nerve?.full_time || 0}
-      />
+    <div className="glass-panel p-5 border-t-2 border-blue-500/50 relative overflow-hidden">
+      <div className="absolute -top-10 -left-10 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl"></div>
+      <h2 className="text-xl font-bold mb-4 text-cyan-300 relative z-10">Stats</h2>
+      <div className="relative z-10">
+        <StatBar 
+          label="Energy" 
+          current={bars?.energy?.current || 0} 
+          max={bars?.energy?.maximum || 100} 
+          color="linear-gradient(90deg,#00f0ff,#0080ff)" 
+          fullTimeSeconds={bars?.energy?.full_time || 0} 
+        />
+        <StatBar 
+          label="Nerve" 
+          current={bars?.nerve?.current || 0} 
+          max={bars?.nerve?.maximum || 100} 
+          color="linear-gradient(90deg,#ff2d75,#ff8c00)" 
+          fullTimeSeconds={bars?.nerve?.full_time || 0} 
+        />
+      </div>
     </div>
   );
 }

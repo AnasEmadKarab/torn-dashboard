@@ -1,43 +1,71 @@
+// hooks/useNotifications.ts
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
-interface NotificationSettings {
+interface AppSettings {
   arrival: boolean;
   stockDrop: boolean;
   flightAlarm: boolean;
+  showStats: boolean;
+  showProperty: boolean;
+  showVault: boolean;
+  showCooldowns: boolean;
+  showRadar: boolean;
+  showOC: boolean;
+  showCanada: boolean;
 }
 
 export function useNotifications() {
-  const [settings, setSettings] = useState<NotificationSettings>({
+  const [settings, setSettings] = useState<AppSettings>({
     arrival: false,
     stockDrop: false,
     flightAlarm: false,
+    showStats: true,
+    showProperty: true,
+    showVault: true,
+    showCooldowns: true,
+    showRadar: true,
+    showOC: true,
+    showCanada: true,
   });
 
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // قراءة الإعدادات المحفوظة عند فتح الموقع
-  useEffect(() => {
-    const saved = localStorage.getItem("torn_notifications");
+  const loadSettings = useCallback(() => {
+    const saved = localStorage.getItem("torn_app_settings");
     if (saved) {
-      setSettings(JSON.parse(saved));
+      setSettings((prev) => ({ ...prev, ...JSON.parse(saved) }));
     }
-    setIsLoaded(true);
   }, []);
 
-  // دالة لتحديث الإعدادات وحفظها
-  const toggleSetting = (key: keyof NotificationSettings) => {
-    const newSettings = { ...settings, [key]: !settings[key] };
-    setSettings(newSettings);
-    localStorage.setItem("torn_notifications", JSON.stringify(newSettings));
+  useEffect(() => {
+    loadSettings();
+    setIsLoaded(true);
 
-    // إذا فعل خيار جديد، نطلب إذن الإشعارات من المتصفح
-    if (newSettings[key] && Notification.permission === "default") {
-      Notification.requestPermission();
-    }
+    const handleUpdate = () => loadSettings();
+    window.addEventListener('torn_settings_updated', handleUpdate);
+    
+    return () => window.removeEventListener('torn_settings_updated', handleUpdate);
+  }, [loadSettings]);
+
+  const toggleSetting = (key: keyof AppSettings) => {
+    setSettings((prev) => {
+      const newSettings = { ...prev, [key]: !prev[key] };
+      localStorage.setItem("torn_app_settings", JSON.stringify(newSettings));
+      
+      // 👈 تم حل مشكلة React بوضع الـ dispatch داخل setTimeout
+      setTimeout(() => {
+        window.dispatchEvent(new Event('torn_settings_updated'));
+      }, 0);
+
+      if ((key === 'arrival' || key === 'stockDrop' || key === 'flightAlarm') && newSettings[key] && Notification.permission === "default") {
+        Notification.requestPermission();
+      }
+      
+      return newSettings;
+    });
   };
 
-  // دالة مساعدة لإرسال الإشعار لو كان مفعل
   const sendNotification = (title: string, options?: NotificationOptions) => {
     if (Notification.permission === "granted") {
       new Notification(title, options);

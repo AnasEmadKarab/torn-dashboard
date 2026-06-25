@@ -1,5 +1,4 @@
 "use client";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from "recharts";
 import { leaveTimeForArrival } from "@/lib/travel-data";
 
 interface ChartProps {
@@ -11,7 +10,7 @@ interface ChartProps {
   rawCan?: any;
   highestSellPrice?: number;
   flightType?: "standard" | "airstrip";
-  showCanada: boolean; // 👈 ضفنا هاد البروب للتحكم
+  showCanada: boolean; 
 }
 
 function formatTime(ts: number) {
@@ -19,37 +18,6 @@ function formatTime(ts: number) {
   return new Date(ts * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
-function CustomTooltip({ active, payload, label, flightType }: any) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="glass-panel p-3 text-sm z-50 relative border-t-2 border-cyan-500/50 shadow-xl">
-      <p className="text-gray-300 mb-2 border-b border-gray-700/50 pb-1">
-        Restock Time: <span className="text-white font-bold">{formatTime(label)}</span>
-      </p>
-      {payload.map((entry: any) => {
-        const country = entry.name.toLowerCase() as "uk" | "japan" | "can"; 
-        const isSpike = entry.payload.isRestock;
-        const stockValue = Math.round(entry.value);
-        
-        return (
-          <div key={entry.name} className="mb-3 last:mb-0">
-            <p style={{ color: entry.color }} className="font-bold flex justify-between gap-4">
-              <span>{entry.name.toUpperCase()}:</span> 
-              <span>{stockValue.toLocaleString()} stock</span>
-            </p>
-            {isSpike && stockValue > 0 && (
-              <p className="text-emerald-300 font-semibold text-xs mt-1 bg-emerald-900/30 px-2 py-1 rounded text-center">
-                ✈ Leave Torn at {formatTime(leaveTimeForArrival(label, country, flightType || "standard"))}
-              </p>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-// 👈 استقبلنا showCanada هنا
 export default function XanaxTimelineChart({ ukData, japanData, canData, rawUk, rawJapan, rawCan, highestSellPrice, flightType = "standard", showCanada }: ChartProps) {
   const now = Math.floor(Date.now() / 1000);
 
@@ -72,12 +40,7 @@ export default function XanaxTimelineChart({ ukData, japanData, canData, rawUk, 
       <div className="text-xs text-gray-400 flex justify-between gap-2 mb-1 border-b border-gray-800 pb-2">
         <span>Next Expected:</span> 
         <span className={`${colorClass} font-bold text-right`}>
-          {formatTime(raw?.next_predicted_restock)} <br/>
-          {raw?.droqs_predicted_restock > 0 && (
-             <span className="text-[10px] text-gray-500 font-normal block mt-0.5">
-               (DroqsDB: {formatTime(raw?.droqs_predicted_restock)})
-             </span>
-          )}
+          {formatTime(raw?.next_predicted_restock)}
         </span>
       </div>
       <div className="text-xs text-gray-400 flex justify-between gap-2 mt-2">
@@ -92,6 +55,15 @@ export default function XanaxTimelineChart({ ukData, japanData, canData, rawUk, 
     </div>
   );
 
+  const upcomingDrops = [
+    ...(ukData || []).filter(d => d.isRestock).map(d => ({ ...d, id: 'uk', label: "UK", color: "text-cyan-400", bg: "bg-cyan-950/40", border: "border-cyan-500/50" })),
+    ...(japanData || []).filter(d => d.isRestock).map(d => ({ ...d, id: 'japan', label: "Japan", color: "text-pink-400", bg: "bg-pink-950/40", border: "border-pink-500/50" })),
+    ...(showCanada ? (canData || []).filter(d => d.isRestock).map(d => ({ ...d, id: 'can', label: "Canada", color: "text-emerald-400", bg: "bg-emerald-950/40", border: "border-emerald-500/50" })) : [])
+  ]
+  .filter(d => d.timestamp > now)
+  .sort((a, b) => a.timestamp - b.timestamp)
+  .slice(0, 15); 
+
   return (
     <div className="glass-panel p-5">
       <div className="mb-6">
@@ -103,29 +75,39 @@ export default function XanaxTimelineChart({ ukData, japanData, canData, rawUk, 
         </div>
       </div>
 
-      <div className="w-full overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-cyan-600 hover:scrollbar-thumb-cyan-400 scrollbar-track-white/5 scrollbar-thumb-rounded-full">
-        <div style={{ minWidth: "300%", height: "180px" }}>
-          <ResponsiveContainer width="99%" height="100%">
-            <LineChart>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-              <XAxis 
-                dataKey="timestamp" 
-                type="number" 
-                domain={[now, 'dataMax']} 
-                allowDataOverflow={true}
-                tickFormatter={formatTime} 
-                stroke="#666" 
-                minTickGap={60}
-              />
-              <YAxis hide={true} domain={[0, 3000]} />
-              <Tooltip content={<CustomTooltip flightType={flightType} />} />
-              <ReferenceLine x={now} stroke="#888" strokeDasharray="4 4" />
-              
-              <Line data={ukData} type="linear" dataKey="predictedStock" stroke="#00f0ff" strokeWidth={2} dot={false} name="UK" />
-              <Line data={japanData} type="linear" dataKey="predictedStock" stroke="#ff2d75" strokeWidth={2} dot={false} name="Japan" />
-              {showCanada && <Line data={canData} type="linear" dataKey="predictedStock" stroke="#10b981" strokeWidth={2} dot={false} name="CAN" />}
-            </LineChart>
-          </ResponsiveContainer>
+      <div className="mt-8">
+        <h3 className="text-lg font-bold text-gray-300 mb-4 flex items-center gap-2">
+          <span className="bg-gray-800 p-1.5 rounded-md text-sm">⏱</span> Upcoming Drops Timeline
+        </h3>
+        
+        {/* تم تعديل الكونتينر هون: ضفنا pt-2 عشان الهوفر، وعدلنا كلاسات السكرول بار */}
+        <div className="flex overflow-x-auto gap-2 md:gap-3 pb-4 pt-2 px-1 scrollbar-thin scrollbar-thumb-cyan-800 hover:scrollbar-thumb-cyan-600 scrollbar-track-transparent snap-x">
+          {upcomingDrops.length === 0 ? (
+             <div className="w-full text-center py-6 text-gray-500 text-sm border border-dashed border-gray-700 rounded-lg">
+               Waiting for prediction data...
+             </div>
+          ) : (
+            upcomingDrops.map((drop, idx) => (
+              // تم تصغير العرض عالموبايل (min-w-[110px]) وتقليل البادينج (p-2)
+              <div key={idx} className={`snap-start min-w-[110px] md:min-w-[150px] flex-shrink-0 rounded-xl border ${drop.border} ${drop.bg} p-2 md:p-3 shadow-lg flex flex-col justify-between transition-transform hover:-translate-y-2`}>
+                <div className="flex justify-between items-center mb-1 md:mb-2">
+                  <span className={`font-bold ${drop.color} text-[10px] md:text-sm uppercase tracking-wider`}>{drop.label}</span>
+                  <span className="text-[9px] md:text-[10px] text-gray-400 bg-black/40 px-1 md:px-1.5 py-0.5 rounded">Drop {idx + 1}</span>
+                </div>
+                
+                <div className="text-white font-mono text-lg md:text-2xl font-bold tracking-tight mb-2 md:mb-3 text-center">
+                  {formatTime(drop.timestamp)}
+                </div>
+                
+                <div className="mt-auto bg-black/40 rounded-lg p-1.5 md:p-2 border border-white/5 text-center">
+                  <div className="text-[9px] md:text-[10px] text-gray-400 uppercase tracking-widest mb-0.5">✈ Fly At</div>
+                  <div className={`font-mono text-xs md:text-sm font-semibold ${drop.color}`}>
+                    {formatTime(leaveTimeForArrival(drop.timestamp, drop.id as any, flightType))}
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>

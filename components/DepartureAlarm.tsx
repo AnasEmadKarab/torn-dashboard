@@ -8,24 +8,19 @@ export default function DepartureAlarm({ flight }: { flight: FlightOption | null
   const [remaining, setRemaining] = useState<number | null>(null);
   const alarmFired = useRef(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  
-  // 👈 استدعاء هوك الإشعارات
   const { settings, sendNotification } = useNotifications();
 
   useEffect(() => {
     if (!flight) return;
     alarmFired.current = false;
-
     const id = setInterval(() => {
       const r = flight.departureTime - Date.now() / 1000;
       setRemaining(r);
       
-      // لما يوصل العداد لـ 3 دقائق أو أقل
       if (r <= 180 && r > 0 && !alarmFired.current) {
         alarmFired.current = true;
         audioRef.current?.play().catch(() => {});
         
-        // 👈 إرسال إشعار المتصفح إذا كان مفعل
         if (settings.flightAlarm) {
           sendNotification(`✈️ Time to fly to ${flight.destination.toUpperCase()}!`, {
             body: `Only ${Math.floor(r / 60)} minutes left to depart. Click to open Travel Agency.`,
@@ -43,7 +38,7 @@ export default function DepartureAlarm({ flight }: { flight: FlightOption | null
       </div>
     ) : (
       <div className="glass-panel p-5 text-center text-gray-400 flex items-center justify-center h-full">
-        👈 Click on a flight from the left list to set your alarm.
+         ✈️ Select a flight from the list to track its time and set an alarm.
       </div>
     );
   }
@@ -74,12 +69,12 @@ export default function DepartureAlarm({ flight }: { flight: FlightOption | null
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
           >
-              <a href="https://www.torn.com/travelagency.php"
+             <a href="https://www.torn.com/travelagency.php"
               target="_blank"
               rel="noopener noreferrer"
               className="px-16 py-10 rounded-3xl text-4xl font-extrabold bg-pink-500 text-white shadow-2xl glow-pink hover:bg-pink-400 transition-colors text-center"
             >
-              🚀 BOOK FLIGHT NOW
+               ✈️ BOOK FLIGHT NOW
               <div className="text-lg mt-2 font-mono">{mins}m {secs}s left to depart</div>
             </a>
           </motion.div>

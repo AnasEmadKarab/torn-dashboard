@@ -8,24 +8,21 @@ export async function GET(request: Request) {
     });
 
     const dbData: any = await redis.get("xanax_advanced_v1") || {};
-    let yataRaw: any = null;
-    let droqsRaw: any = null;
+    let prombotRaw: any = null;
 
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 6000); 
       
-      // 👈 الضرب المزدوج: استدعاء YATA و DroqsDB معاً
-      const [yataRes, droqsRes] = await Promise.allSettled([
-        fetch("https://yata.yt/api/v1/travel/export/", { signal: controller.signal }),
-        fetch("https://droqsdb.com/api/public/v1/export", { signal: controller.signal })
-      ]);
+      // 👈 تم التبديل إلى API برومبوت السريع
+      const prombotRes = await fetch("https://prombot.co.uk:8443/api/travel", { signal: controller.signal });
       clearTimeout(timeoutId);
 
-      if (yataRes.status === "fulfilled" && yataRes.value.ok) yataRaw = await yataRes.value.json();
-      if (droqsRes.status === "fulfilled" && droqsRes.value.ok) droqsRaw = await droqsRes.value.json();
+      if (prombotRes.ok) {
+        prombotRaw = await prombotRes.json();
+      }
 
-      if (!yataRaw && !droqsRaw) throw new Error("Both APIs failed to respond.");
+      if (!prombotRaw) throw new Error("Prombot API failed to respond.");
       
     } catch (apiError: any) {
       console.warn("APIs Warning - Using Redis Fallback:", apiError.message);
@@ -39,48 +36,27 @@ export async function GET(request: Request) {
     const now = Math.floor(Date.now() / 1000);
     const newData: Record<string, any> = {};
 
-    for (const [key, yataKey] of Object.entries(COUNTRY_KEYS)) {
-      // --- 1. قراءة بيانات YATA ---
-      const yataCountry = yataRaw?.stocks?.[yataKey];
-      const yataXanax = yataCountry?.stocks?.find((item: any) => item.name === "Xanax" || item.id === 206);
-      const yataTime = yataCountry?.update || 0;
-
-      // --- 2. قراءة بيانات DroqsDB ---
-      let droqsXanax: any = null;
-      let droqsTime = 0;
-      let droqsPredictedRestock = dbData[key]?.droqs_predicted_restock || 0; 
-      let bazaarPrice = 0;
-
-      if (droqsRaw && droqsRaw.countries) {
-        const droqsCountry = droqsRaw.countries.find((c: any) => c.yataCode === yataKey);
-        droqsXanax = droqsCountry?.items?.find((item: any) => item.itemId === 206);
-        if (droqsXanax) {
-          droqsTime = Math.floor(new Date(droqsXanax.stockUpdatedAt).getTime() / 1000);
-          bazaarPrice = droqsXanax.bazaarPrice || 0;
-          
-          // سحب وقت التوقع المباشر
-          if (droqsXanax.restockEstimate?.estimatedAt) {
-            droqsPredictedRestock = Math.floor(new Date(droqsXanax.restockEstimate.estimatedAt).getTime() / 1000);
-          } else if (droqsXanax.restockEstimate?.estimatedMinutes) {
-            droqsPredictedRestock = now + Math.floor(droqsXanax.restockEstimate.estimatedMinutes * 60);
-          }
-        }
-      }
-
-      // --- 3. المقارنة الذكية: الأحدث يفوز ---
+    for (const [key, prombotKey] of Object.entries(COUNTRY_KEYS)) {
+      // --- 1. قراءة بيانات Prombot ---
+      const countryData = prombotRaw?.stocks?.[prombotKey];
+      const xanaxItem = countryData?.stocks?.find((item: any) => item.id === 206); // 206 هو آي دي الزاناكس
+      
+      let updateTime = now;
       let currentQty = 0;
       let cost = 0;
-      let updateTime = now;
+      let apiPredictedRestock = dbData[key]?.droqs_predicted_restock || 0; 
 
-      if (droqsXanax && droqsTime >= yataTime) {
-        currentQty = droqsXanax.stock ?? 0;
-        cost = droqsXanax.buyPrice ?? 0;
-        updateTime = droqsTime;
-      } else if (yataXanax) {
-        currentQty = yataXanax.quantity ?? 0;
-        cost = yataXanax.cost ?? 0;
-        updateTime = yataTime;
+      if (countryData && xanaxItem) {
+        updateTime = countryData.update || now;
+        currentQty = xanaxItem.quantity ?? 0;
+        cost = xanaxItem.cost ?? 0;
+        
+        // تحويل وقت الريستوك من Prombot إلى ثواني
+        if (xanaxItem.nextRestock) {
+          apiPredictedRestock = Math.floor(new Date(xanaxItem.nextRestock).getTime() / 1000);
+        }
       } else {
+        // حالة الطوارئ نرجع للكاش
         currentQty = dbData[key]?.current_quantity ?? 0;
         cost = dbData[key]?.cost ?? 0;
         updateTime = dbData[key]?.last_update ?? now;
@@ -149,8 +125,8 @@ export async function GET(request: Request) {
         next_predicted_restock = last_empty_time + Math.round(avgDelay);
       }
 
-      // إذا توافر سعر البازار من DroqsDB نستخدمه، وإلا نستخدم الرقم الافتراضي للـ Weaver
-      const sellPrice = bazaarPrice > 0 ? bazaarPrice : 835000;
+      // بما إنه برومبوت ما فيه سعر البازار، بنثبته عالسعر المعتاد، والواجهة بتجيبه من Weaver هيك هيك
+      const sellPrice = 835000;
       const estimated_profit = cost > 0 ? (sellPrice - cost) : 0;
 
       newData[key] = {
@@ -163,7 +139,7 @@ export async function GET(request: Request) {
         last_predicted_restock,
         empty_duration_minutes,
         next_predicted_restock,
-        droqs_predicted_restock: droqsPredictedRestock, // 👈 وقت توقع DroqsDB سيفناه هنا
+        droqs_predicted_restock: apiPredictedRestock, // 👈 حافظنا على نفس الاسم عشان ما نكسر الكروت والجراف
         start_qty,
         history,
         stats: {
