@@ -1,4 +1,5 @@
 // app/api/heartbeat/route.ts
+
 import { NextResponse } from "next/server";
 import { Redis } from "@upstash/redis";
 
@@ -9,15 +10,19 @@ const redis = new Redis({
 
 export async function POST(req: Request) {
   try {
-    // نجيب الـ IP أو معرف فريد للجهاز (ممكن نستخدم الـ API Key كمعرف إذا كان مسجل)
-    const ip = req.headers.get("x-forwarded-for") || "anonymous";
-    const userId = ip; // أو استخدم API Key اللاعب كمعرف فريد
+    const userId =
+      req.headers.get("x-forwarded-for") ||
+      req.headers.get("cf-connecting-ip") ||
+      "anonymous";
 
-    // نحفظ المستخدم في Redis بـ TTL مدته 60 ثانية (أوتوماتيكياً بيحذف نفسه)
-    await redis.set(`active_user:${userId}`, "online", { ex: 60 });
+    await redis.hset("online_users", {
+      [userId]: Date.now(),
+    });
 
-    return NextResponse.json({ status: "ok" });
-  } catch (e) {
-    return NextResponse.json({ status: "error" }, { status: 500 });
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error(error);
+
+    return NextResponse.json({ success: false }, { status: 500 });
   }
 }
