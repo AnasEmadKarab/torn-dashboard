@@ -25,17 +25,21 @@ export async function GET(request: Request) {
       const crimesRes = await tornFetch<any>("faction", apiKey, "crimes");
       crimes = crimesRes?.crimes ?? [];
     } catch (e: any) {
-      console.warn("[/api/torn/faction] Faction crimes endpoint access denied (Normal if no AA)");
-      crimes = []; 
+      console.warn(
+        "[/api/torn/faction] Faction crimes endpoint access denied (Normal if no AA)",
+      );
+      crimes = [];
     }
 
-    return Response.json({ 
-      crimes, 
-      vault: { money_balance: vaultBalance } 
-    }, { 
-      headers: { "Cache-Control": "no-store" } 
-    });
-
+    return Response.json(
+      {
+        crimes,
+        vault: { money_balance: vaultBalance },
+      },
+      {
+        headers: { "Cache-Control": "no-store" },
+      },
+    );
   } catch (e: any) {
     console.error("[/api/torn/faction] FATAL:", e.message);
     return Response.json({ crimes: [], vault: { money_balance: 0 } });
