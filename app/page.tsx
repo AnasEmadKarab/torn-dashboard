@@ -5,7 +5,6 @@ import { useTornUser } from "@/hooks/useTornUser";
 import { useXanaxPredictions } from "@/hooks/useXanaxPredictions";
 import { useNotifications } from "@/hooks/useNotifications";
 import { getTopFlights, FlightOption } from "@/lib/flight-rankings";
-
 import StatsPanel from "@/components/StatsPanel";
 import WeaverTraders from "@/components/WeaverTraders";
 import CooldownTimers from "@/components/CooldownTimers";
@@ -19,6 +18,7 @@ import DepartureAlarm from "@/components/DepartureAlarm";
 import NotificationSettings from "@/components/NotificationSettings";
 
 export default function Dashboard() {
+  const [onlineCount, setOnlineCount] = useState(0);
   const [scheduledFlight, setScheduledFlight] = useState<FlightOption | null>(null);
   const [flightType, setFlightType] = useState<"standard" | "airstrip">("standard");
   
@@ -29,6 +29,22 @@ export default function Dashboard() {
   useEffect(() => {
     const savedType = localStorage.getItem("flightType") as "standard" | "airstrip";
     if (savedType) setFlightType(savedType);
+  }, []);
+
+  useEffect(() => {
+    // إرسال النبض كل 30 ثانية
+    const heartbeat = setInterval(() => {
+      fetch('/api/heartbeat', { method: 'POST' });
+    }, 30000);
+
+    // جلب العدد كل 10 ثواني
+    const fetchCount = setInterval(async () => {
+      const res = await fetch('/api/users-online');
+      const data = await res.json();
+      setOnlineCount(data.count);
+    }, 10000);
+
+    return () => { clearInterval(heartbeat); clearInterval(fetchCount); };
   }, []);
 
   const handleFlightTypeChange = (type: "standard" | "airstrip") => {
@@ -63,10 +79,10 @@ export default function Dashboard() {
         <h1 className="text-3xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-emerald-400 to-pink-500 text-center font-sora drop-shadow-lg tracking-tight whitespace-nowrap">
           Habibi Dashboard
         </h1>
-        
+
         <div className="w-10 flex justify-end">
           <NotificationSettings />
-        </div>
+        </div>     
       </div>
 
       {hasUser ? (
@@ -137,6 +153,10 @@ export default function Dashboard() {
           </div>
         </>
       )}
+      
+      <div className="fixed bottom-4 left-4 bg-gray-900 border border-emerald-500/50 px-3 py-1 rounded-full text-emerald-400 text-xs font-bold">
+        🟢 {onlineCount} Online
+      </div> 
     </div>
   );
 }
