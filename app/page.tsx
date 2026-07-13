@@ -19,7 +19,7 @@ import NotificationSettings from "@/components/NotificationSettings";
 import GlobalChat from "@/components/GlobalChat";
 
 export default function Dashboard() {
-  const [onlineCount, setOnlineCount] = useState(0);
+  const [onlineCount, setOnlineCount] = useState(0); // comment
   const [scheduledFlight, setScheduledFlight] = useState<FlightOption | null>(
     null,
   );
