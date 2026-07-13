@@ -1,10 +1,12 @@
-// app/api/chat/route.ts
+export const dynamic = 'force-dynamic'; 
+
 import Pusher from "pusher";
 import { NextResponse } from "next/server";
 
+// 2️⃣ إعدادات بوشر
 const pusher = new Pusher({
   appId: "2175907",
-  key: "4d6bb7f0a2ed140fe2a3",
+  key: "4d6bb7f0a2ed140fe2a3", 
   secret: "4c5eeecf2a608184f107",
   cluster: "eu",
   useTLS: true,
@@ -12,29 +14,18 @@ const pusher = new Pusher({
 
 export async function POST(req: Request) {
   try {
-    const { message, sender } = await req.json();
-console.log("Before trigger");
-    // بث الرسالة على قناة اسمها "habibi-chat"
+    const body = await req.json();
+    const { message, sender } = body;
+
+    // إرسال الرسالة إلى Pusher
     await pusher.trigger("habibi-chat", "new-message", {
-      message,            
-      sender,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      message: message,
+      sender: sender,
     });
-console.log("After trigger");
+
     return NextResponse.json({ success: true });
   } catch (error: any) {
-  console.error("FULL ERROR:", error);
-  console.error("MESSAGE:", error?.message);
-  console.error("STACK:", error?.stack);
-  console.error("DETAILS:", error?.error);
-
-  return NextResponse.json(
-    {
-      success: false,
-      message: error?.message,
-      details: error?.error,
-    },
-    { status: 500 }
-  );
-}
+    console.error("CHAT ERROR:", error.message);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 }
