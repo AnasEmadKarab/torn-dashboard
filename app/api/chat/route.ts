@@ -22,14 +22,19 @@ console.log("Before trigger");
     });
 console.log("After trigger");
     return NextResponse.json({ success: true });
-  } catch (error) {
-  console.error("CHAT ERROR:", error);
+  } catch (error: any) {
+  console.error("FULL ERROR:", error);
+  console.error("MESSAGE:", error?.message);
+  console.error("STACK:", error?.stack);
+  console.error("DETAILS:", error?.error);
+
   return NextResponse.json(
     {
       success: false,
-      error: String(error),
+      message: error?.message,
+      details: error?.error,
     },
     { status: 500 }
   );
-  }
+}
 }
