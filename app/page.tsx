@@ -16,6 +16,7 @@ import XanaxTimelineChart from "@/components/XanaxTimelineChart";
 import FlightScheduler from "@/components/FlightScheduler";
 import DepartureAlarm from "@/components/DepartureAlarm";
 import NotificationSettings from "@/components/NotificationSettings";
+import GlobalChat from "@/components/GlobalChat";
 
 export default function Dashboard() {
   const [onlineCount, setOnlineCount] = useState(0);
@@ -128,7 +129,7 @@ export default function Dashboard() {
           <NotificationSettings />
         </div>
       </div>
-
+      <GlobalChat />
       {hasUser ? (
         <>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
@@ -227,9 +228,6 @@ export default function Dashboard() {
         </>
       )}
 
-      <div className="fixed bottom-4 left-4 bg-gray-900 border border-emerald-500/50 px-3 py-1 rounded-full text-emerald-400 text-xs font-bold">
-        🟢 {onlineCount} Online
-      </div>
     </div>
   );
 }
