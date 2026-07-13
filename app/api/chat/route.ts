@@ -13,16 +13,23 @@ const pusher = new Pusher({
 export async function POST(req: Request) {
   try {
     const { message, sender } = await req.json();
-
+console.log("Before trigger");
     // بث الرسالة على قناة اسمها "habibi-chat"
     await pusher.trigger("habibi-chat", "new-message", {
-      message,
+      message,            
       sender,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     });
-
+console.log("After trigger");
     return NextResponse.json({ success: true });
   } catch (error) {
-    return NextResponse.json({ success: false }, { status: 500 });
+  console.error("CHAT ERROR:", error);
+  return NextResponse.json(
+    {
+      success: false,
+      error: String(error),
+    },
+    { status: 500 }
+  );
   }
 }

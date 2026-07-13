@@ -9,7 +9,7 @@ export default function GlobalChat() {
   const [senderName, setSenderName] = useState("Anonymous");
   const [unreadCount, setUnreadCount] = useState(0);
   const [onlineCount, setOnlineCount] = useState(0);
-  
+  const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const isOpenRef = useRef(isOpen);
 
@@ -61,22 +61,30 @@ export default function GlobalChat() {
 
     const channel = pusher.subscribe("habibi-chat");
     
-    channel.bind("new-message", (data: any) => {
-      // إضافة طابع زمني للرسالة لو مافيها
-      const msgWithTime = { ...data, timestamp: Date.now() };
-      
-      setMessages((prev) => {
-        const newMsgs = [...prev, msgWithTime];
-        // حفظ في اللوكل ستورج فوراً
-        localStorage.setItem("habibi_chat_history", JSON.stringify(newMsgs));
-        return newMsgs;
-      });
+      channel.bind("new-message", (data: any) => {
+        // إنشاء وقت مقروء إذا لم يكن قادماً من السيرفر
+        console.log("pusher : ", data);
+        const formattedTime = new Date().toLocaleTimeString('en-US', { 
+          hour: '2-digit', 
+          minute: '2-digit' 
+        });
 
-      // زيادة عداد الإشعارات إذا الشات مسكر
-      if (!isOpenRef.current) {
-        setUnreadCount(prev => prev + 1);
-      }
-    });
+        const msgWithTime = { 
+          ...data, 
+          timestamp: Date.now(),
+          time: data.time || formattedTime // استخدم وقت السيرفر أو الوقت المحلي
+        };
+        
+        setMessages((prev) => {
+          const newMsgs = [...prev, msgWithTime];
+          localStorage.setItem("habibi_chat_history", JSON.stringify(newMsgs));
+          return newMsgs;
+        });
+
+        if (!isOpenRef.current) {
+          setUnreadCount(prev => prev + 1);
+        }
+      });
 
     return () => {
       pusher.unsubscribe("habibi-chat");
@@ -108,16 +116,30 @@ export default function GlobalChat() {
   // 4. إرسال الرسالة
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim()) return;
+    if (!input.trim() || isSending) return;
 
     const msg = input;
-    setInput(""); 
+    setInput(""); // تفريغ الحقل لتجربة مستخدم سريعة
+    setIsSending(true);
 
-    await fetch("/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: msg, sender: senderName }),
-    });
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: msg, sender: senderName }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to send message");
+      }
+    } catch (error) {
+      // إذا فشل الإرسال، أعد النص إلى حقل الإدخال ونبه المستخدم
+      setInput(msg); 
+      console.error("Chat error:", error);
+      // يمكنك إضافة Toast notification هنا مستقبلاً
+    } finally {
+      setIsSending(false);
+    }
   };
 
   return (
@@ -169,7 +191,7 @@ export default function GlobalChat() {
                 );
               })
             )}
-            <div ref={messagesEndRef} />
+            <div ref={messagesEndRef} />  
           </div>
 
           {/* حقل الإدخال */}
@@ -179,7 +201,9 @@ export default function GlobalChat() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Type a message..."
-              className="flex-1 bg-gray-950/50 text-white text-xs rounded-xl px-4 outline-none border border-gray-700/50 focus:border-emerald-500/50 focus:bg-gray-950 transition-all placeholder:text-gray-600"
+              maxLength={200} // منع إرسال نصوص عملاقة
+              disabled={isSending} // تعطيل الحقل أثناء الإرسال
+              className="flex-1 bg-gray-950/50 text-white text-xs rounded-xl px-4 outline-none border border-gray-700/50 focus:border-emerald-500/50 focus:bg-gray-950 transition-all placeholder:text-gray-600 disabled:opacity-50"
             />
             {/* التعديل هنا: التوسيط الدقيق للأيقونة */}
             <button type="submit" className="bg-emerald-600 hover:bg-emerald-500 text-white w-9 h-9 rounded-xl transition-all shadow-md hover:shadow-emerald-500/25 active:scale-95 flex items-center justify-center">
