@@ -1,4 +1,3 @@
-// components/NotificationSettings.tsx
 "use client";
 import { useState, useEffect } from "react";
 import { useNotifications } from "@/hooks/useNotifications";
@@ -7,18 +6,48 @@ export default function NotificationSettings() {
   const [isOpen, setIsOpen] = useState(false);
   const { settings, toggleSetting, isLoaded } = useNotifications();
   const [apiKey, setApiKey] = useState("");
+  
+  // 👈 حالات جديدة لإدارة الفحص والأخطاء
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [keyError, setKeyError] = useState("");
 
   useEffect(() => {
     setApiKey(localStorage.getItem("TORN_API_KEY") || "");
+    setKeyError(""); // تصفير الخطأ لما يفتح الإعدادات
   }, [isOpen]);
 
-  const saveApiKey = () => {
-    if (apiKey.trim()) {
-      localStorage.setItem("TORN_API_KEY", apiKey.trim());
-    } else {
+  const saveApiKey = async () => {
+    setKeyError("");
+    const keyToSave = apiKey.trim();
+
+    // إذا مسح المفتاح وبده يكمل كزائر
+    if (!keyToSave) {
       localStorage.removeItem("TORN_API_KEY");
+      window.location.reload();
+      return;
     }
-    window.location.reload(); 
+
+    setIsVerifying(true);
+
+    try {
+      // 👈 السحر هنا: نعمل فحص سريع للمفتاح قبل ما نحفظه
+      const res = await fetch(`/api/torn/user?key=${keyToSave}`);
+      const data = await res.json();
+
+      // إذا الـ API رد بخطأ (صلاحية ضعيفة أو مفتاح غلط)
+      if (!res.ok || data.error) {
+        setKeyError("❌ Invalid API Key! Please use a Limited API Key.");
+        setIsVerifying(false);
+        return; // نوقف الشغل وما نحفظه باللوكل ستورج
+      }
+
+      // إذا المفتاح سليم 100%
+      localStorage.setItem("TORN_API_KEY", keyToSave);
+      window.location.reload(); 
+    } catch (err) {
+      setKeyError("❌ Connection failed. Please try again.");
+      setIsVerifying(false);
+    }
   };
 
   if (!isLoaded) return null;
@@ -47,8 +76,6 @@ export default function NotificationSettings() {
 
       {isOpen && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          
-          {/* 👈 فصلنا الهيدر عن السكرول عشان نتفادى التداخل */}
           <div className="bg-gray-900 border border-cyan-500/30 rounded-xl w-full max-w-md shadow-2xl max-h-[90vh] flex flex-col overflow-hidden">
             
             <div className="flex justify-between items-center p-4 border-b border-gray-800 bg-gray-900 z-10">
@@ -67,17 +94,28 @@ export default function NotificationSettings() {
                     onChange={(e) => setApiKey(e.target.value)}
                     placeholder="Enter Torn API Key..."
                     className="flex-1 w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500"
+                    disabled={isVerifying}
                   />
-                  <button onClick={saveApiKey} className="bg-cyan-600 hover:bg-cyan-500 text-white px-3 py-2 rounded-lg text-sm font-bold transition-colors whitespace-nowrap">
-                    Save Key
+                  <button 
+                    onClick={saveApiKey} 
+                    disabled={isVerifying}
+                    className="bg-cyan-600 hover:bg-cyan-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-3 py-2 rounded-lg text-sm font-bold transition-colors whitespace-nowrap"
+                  >
+                    {isVerifying ? "Checking..." : "Save Key"}
                   </button>
                 </div>
                 
-                {/* 👈 ملاحظة الخصوصية المطلوبة */}
+                {/* 👈 رسالة الخطأ تظهر هنا إن وجدت */}
+                {keyError && (
+                  <div className="mt-2 text-xs font-bold text-pink-400 bg-pink-500/10 p-2 rounded border border-pink-500/20">
+                    {keyError}
+                  </div>
+                )}
+
                 <div className="mt-3 bg-cyan-900/20 border border-cyan-800/50 rounded-lg p-3">
                   <p className="text-[10px] md:text-xs text-gray-400 leading-relaxed">
                     ⚠️ A <strong className="text-cyan-400">Limited API Key</strong> is required for Vitals, Properties, and Vault data. 
-                    Your API key is <span className="text-pink-400 font-bold">NEVER</span> sent to our servers; it is stored securely in your browser's local storage as per Torn's developer guidelines.
+                    Your API key is <span className="text-pink-400 font-bold">NEVER</span> sent to our servers; it is stored securely in your browser's local storage.
                   </p>
                 </div>
               </div>

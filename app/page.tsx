@@ -1,4 +1,3 @@
-// app/page.tsx
 "use client";
 import { useState, useEffect } from "react";
 import { useTornUser } from "@/hooks/useTornUser";
@@ -15,17 +14,12 @@ import TravelRadar from "@/components/TravelRadar";
 import XanaxTimelineChart from "@/components/XanaxTimelineChart";
 import FlightScheduler from "@/components/FlightScheduler";
 import DepartureAlarm from "@/components/DepartureAlarm";
-import NotificationSettings from "@/components/NotificationSettings";
 import GlobalChat from "@/components/GlobalChat";
+import NotificationSettings from "@/components/NotificationSettings";
 
 export default function Dashboard() {
-  const [onlineCount, setOnlineCount] = useState(0); // comment
-  const [scheduledFlight, setScheduledFlight] = useState<FlightOption | null>(
-    null,
-  );
-  const [flightType, setFlightType] = useState<"standard" | "airstrip">(
-    "standard",
-  );
+  const [scheduledFlight, setScheduledFlight] = useState<FlightOption | null>(null);
+  const [flightType, setFlightType] = useState<"standard" | "airstrip">("standard");
 
   const { settings, isLoaded } = useNotifications();
   const {
@@ -36,48 +30,22 @@ export default function Dashboard() {
   const { data: xanax } = useXanaxPredictions();
 
   useEffect(() => {
-    const savedType = localStorage.getItem("flightType") as
-      | "standard"
-      | "airstrip";
+    const savedType = localStorage.getItem("flightType") as "standard" | "airstrip";
     if (savedType) setFlightType(savedType);
   }, []);
 
+  // 👈 إرسال نبضة التواجد فقط (بدون جلب العداد لأن الشات يتكفل به)
   useEffect(() => {
     const sendHeartbeat = async () => {
       try {
-        await fetch("/api/heartbeat", {
-          method: "POST",
-        });
-      } catch (err) {
-        console.error("Heartbeat failed:", err);
-      }
+        await fetch("/api/heartbeat", { method: "POST" });
+      } catch (err) {}
     };
 
-    const fetchOnlineCount = async () => {
-      try {
-        const res = await fetch("/api/users-online");
-        const data = await res.json();
-
-        setOnlineCount(data.count || 0);
-      } catch (err) {
-        console.error("Failed to fetch online count:", err);
-      }
-    };
-
-    // أول ما يفتح الموقع
     sendHeartbeat();
-    fetchOnlineCount();
-
-    // نبضة كل دقيقة
     const heartbeatInterval = setInterval(sendHeartbeat, 60000);
 
-    // تحديث العداد كل 30 ثانية
-    const countInterval = setInterval(fetchOnlineCount, 30000);
-
-    return () => {
-      clearInterval(heartbeatInterval);
-      clearInterval(countInterval);
-    };
+    return () => clearInterval(heartbeatInterval);
   }, []);
 
   const handleFlightTypeChange = (type: "standard" | "airstrip") => {
@@ -85,6 +53,7 @@ export default function Dashboard() {
     localStorage.setItem("flightType", type);
   };
 
+  // شاشة التحميل
   if (userLoading || !isLoaded) {
     return (
       <div className="min-h-screen flex items-center justify-center text-cyan-300 font-medium font-mono text-xl animate-pulse">
@@ -93,18 +62,8 @@ export default function Dashboard() {
     );
   }
 
-  if (userError) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="glass-panel p-4 md:p-6 glow-pink text-pink-300 text-center text-sm md:text-base">
-          Error: {(userError as Error).message}. Please update your API Key in
-          Settings.
-        </div>
-      </div>
-    );
-  }
-
-  const hasUser = user !== null;
+  // التأكد من حالة المستخدم
+  const hasUser = user !== null && !userError;
   const myTravelTimeLeft = hasUser ? (user.travel?.time_left ?? 0) : 0;
   const topFlights = xanax
     ? getTopFlights(
@@ -129,7 +88,7 @@ export default function Dashboard() {
           <NotificationSettings />
         </div>
       </div>
-      <GlobalChat/>
+
       {hasUser ? (
         <>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
@@ -144,9 +103,7 @@ export default function Dashboard() {
               <MoneyVaultCard
                 cashOnHand={user.money?.wallet ?? user.money_onhand ?? 0}
                 vaultBalance={user.money?.faction?.money ?? 0}
-                hasFaction={
-                  user.faction?.faction_id !== 0 && !!user.faction?.faction_id
-                }
+                hasFaction={user.faction?.faction_id !== 0 && !!user.faction?.faction_id}
               />
             )}
           </div>
@@ -163,10 +120,9 @@ export default function Dashboard() {
 
           {settings.showRadar && <TravelRadar travel={user.travel} />}
 
-          {user.travel?.destination === "Torn" &&
-            (user.travel?.time_left ?? 0) === 0 && (
-              <WeaverTraders currentDestination={user.travel?.destination} />
-            )}
+          {user.travel?.destination === "Torn" && (user.travel?.time_left ?? 0) === 0 && (
+            <WeaverTraders currentDestination={user.travel?.destination} />
+          )}
 
           {settings.showOC && (
             <OCFilterList
@@ -176,19 +132,28 @@ export default function Dashboard() {
           )}
         </>
       ) : (
+        /* وضع الزائر (Guest Mode) */
         <div className="glass-panel p-8 text-center border border-dashed border-gray-600 bg-gray-900/50 mt-4">
           <p className="text-xl font-bold text-white mb-2">
             Welcome to Habibi Dashboard! ☕
           </p>
-          <p className="text-gray-400 text-sm">
-            You are in Guest Mode. Open the{" "}
-            <strong className="text-cyan-400">Settings ⚙️</strong> in the top
-            right to add your Torn API Key and unlock player stats, properties,
-            and vaults.
+          
+          {userError && (
+            <div className="inline-block bg-pink-500/10 border border-pink-500/30 rounded-lg p-3 mb-4 max-w-lg">
+              <p className="text-pink-400 text-sm font-medium">
+                ⚠️ API Notice: {(userError as Error).message}
+              </p>
+            </div>
+          )}
+
+          <p className="text-gray-400 text-sm max-w-2xl mx-auto">
+            You are currently in <strong className="text-white">Guest Mode</strong>. You can view global Xanax restocks and join the chat below. 
+            Open the <strong className="text-cyan-400">Settings ⚙️</strong> in the top right to add your Torn API Key and unlock player stats, properties, and vaults securely.
           </p>
         </div>
       )}
 
+      {/* قسم الستوك والرحلات متاح للجميع */}
       {xanax && (
         <>
           <XanaxTimelineChart
@@ -227,7 +192,7 @@ export default function Dashboard() {
           </div>
         </>
       )}
-
+      <GlobalChat />
     </div>
   );
 }
