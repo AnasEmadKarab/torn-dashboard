@@ -18,8 +18,12 @@ import GlobalChat from "@/components/GlobalChat";
 import NotificationSettings from "@/components/NotificationSettings";
 
 export default function Dashboard() {
-  const [scheduledFlight, setScheduledFlight] = useState<FlightOption | null>(null);
-  const [flightType, setFlightType] = useState<"standard" | "airstrip">("standard");
+  const [scheduledFlight, setScheduledFlight] = useState<FlightOption | null>(
+    null,
+  );
+  const [flightType, setFlightType] = useState<"standard" | "airstrip">(
+    "standard",
+  );
 
   const { settings, isLoaded } = useNotifications();
   const {
@@ -30,7 +34,9 @@ export default function Dashboard() {
   const { data: xanax } = useXanaxPredictions();
 
   useEffect(() => {
-    const savedType = localStorage.getItem("flightType") as "standard" | "airstrip";
+    const savedType = localStorage.getItem("flightType") as
+      | "standard"
+      | "airstrip";
     if (savedType) setFlightType(savedType);
   }, []);
 
@@ -103,7 +109,9 @@ export default function Dashboard() {
               <MoneyVaultCard
                 cashOnHand={user.money?.wallet ?? user.money_onhand ?? 0}
                 vaultBalance={user.money?.faction?.money ?? 0}
-                hasFaction={user.faction?.faction_id !== 0 && !!user.faction?.faction_id}
+                hasFaction={
+                  user.faction?.faction_id !== 0 && !!user.faction?.faction_id
+                }
               />
             )}
           </div>
@@ -120,9 +128,10 @@ export default function Dashboard() {
 
           {settings.showRadar && <TravelRadar travel={user.travel} />}
 
-          {user.travel?.destination === "Torn" && (user.travel?.time_left ?? 0) === 0 && (
-            <WeaverTraders currentDestination={user.travel?.destination} />
-          )}
+          {user.travel?.destination === "Torn" &&
+            (user.travel?.time_left ?? 0) === 0 && (
+              <WeaverTraders currentDestination={user.travel?.destination} />
+            )}
 
           {settings.showOC && (
             <OCFilterList
@@ -137,7 +146,7 @@ export default function Dashboard() {
           <p className="text-xl font-bold text-white mb-2">
             Welcome to Habibi Dashboard! ☕
           </p>
-          
+
           {userError && (
             <div className="inline-block bg-pink-500/10 border border-pink-500/30 rounded-lg p-3 mb-4 max-w-lg">
               <p className="text-pink-400 text-sm font-medium">
@@ -147,8 +156,12 @@ export default function Dashboard() {
           )}
 
           <p className="text-gray-400 text-sm max-w-2xl mx-auto">
-            You are currently in <strong className="text-white">Guest Mode</strong>. You can view global Xanax restocks and join the chat below. 
-            Open the <strong className="text-cyan-400">Settings ⚙️</strong> in the top right to add your Torn API Key and unlock player stats, properties, and vaults securely.
+            You are currently in{" "}
+            <strong className="text-white">Guest Mode</strong>. You can view
+            global Xanax restocks and join the chat below. Open the{" "}
+            <strong className="text-cyan-400">Settings ⚙️</strong> in the top
+            right to add your Torn API Key and unlock player stats, properties,
+            and vaults securely.
           </p>
         </div>
       )}

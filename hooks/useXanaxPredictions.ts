@@ -1,3 +1,4 @@
+// hooks/useXanaxPredictions.ts
 "use client";
 import { useQuery } from "@tanstack/react-query";
 import { projectXanaxTimeline } from "@/lib/predictions";
@@ -6,7 +7,7 @@ import { useNotifications } from "./useNotifications";
 
 export function useXanaxPredictions() {
   const { settings, sendNotification } = useNotifications();
-  
+
   // 👈 1. حالة جديدة للتحكم بوقت التحديث (نبدأ بـ 30 ثانية)
   const [pollInterval, setPollInterval] = useState(30000);
 
@@ -18,28 +19,37 @@ export function useXanaxPredictions() {
     queryKey: ["xanax-predictions"],
     queryFn: async () => {
       const cronRes = await fetch("/api/cron/update").catch(() => null);
-      if (!cronRes || !cronRes.ok) throw new Error("Failed to fetch Xanax data");
-      
+      if (!cronRes || !cronRes.ok)
+        throw new Error("Failed to fetch Xanax data");
+
       const json = await cronRes.json();
       const raw = json.data;
 
-      let highestSellPrice = 0; 
+      let highestSellPrice = 0;
       try {
         const weaverRes = await fetch("/api/weaver");
         if (weaverRes.ok) {
           const weaverJson = await weaverRes.json();
-          let deals = (weaverJson.deals || []).filter((d: any) => d.price < 833000); 
-          
-          const blacklist = typeof window !== "undefined" ? JSON.parse(localStorage.getItem("torn_trader_blacklist") || "[]") : [];
-          deals = deals.filter((d: any) => !blacklist.includes(d.playerId));
+          // ⚠️ تم إزالة شرط السعر الثابت 833000 حتى لا يتم فلترة أفضل الأسعار الحالية
+          let deals = weaverJson.deals || [];
+
+          const blacklist =
+            typeof window !== "undefined"
+              ? JSON.parse(
+                  localStorage.getItem("torn_trader_blacklist") || "[]",
+                )
+              : [];
+          // ⚠️ تعديل: استخدام seller_id بدلاً من playerId
+          deals = deals.filter(
+            (d: any) => !blacklist.includes(parseInt(d.seller_id, 10)),
+          );
 
           deals.sort((a: any, b: any) => b.price - a.price);
           const top10 = deals.slice(0, 10);
 
+          // ⚠️ تعديل: استخدام rating مباشرة كونه رقم صحيح من الـ API الجديد
           top10.sort((a: any, b: any) => {
-            const scoreA = (a.rating.upvotes - a.rating.downvotes);
-            const scoreB = (b.rating.upvotes - b.rating.downvotes);
-            return scoreB - scoreA;
+            return b.rating - a.rating;
           });
           const top3 = top10.slice(0, 3);
 
@@ -51,7 +61,8 @@ export function useXanaxPredictions() {
         console.error("Failed to sync trader price");
       }
 
-      const calculateProfit = (cost: number) => cost > 0 ? (highestSellPrice - cost) : 0;
+      const calculateProfit = (cost: number) =>
+        cost > 0 ? highestSellPrice - cost : 0;
       if (raw.uk) raw.uk.profit = calculateProfit(raw.uk.cost);
       if (raw.japan) raw.japan.profit = calculateProfit(raw.japan.cost);
       if (raw.can) raw.can.profit = calculateProfit(raw.can.cost);
@@ -60,14 +71,14 @@ export function useXanaxPredictions() {
       const japanPrediction = projectXanaxTimeline(raw.japan, "japan");
       const canPrediction = projectXanaxTimeline(raw.can, "can");
 
-      const finalData = { 
-        uk: ukPrediction, 
-        japan: japanPrediction, 
-        can: canPrediction, 
-        rawUk: raw.uk, 
+      const finalData = {
+        uk: ukPrediction,
+        japan: japanPrediction,
+        can: canPrediction,
+        rawUk: raw.uk,
         rawJapan: raw.japan,
-        rawCan: raw.can, 
-        highestSellPrice 
+        rawCan: raw.can,
+        highestSellPrice,
       };
 
       if (typeof window !== "undefined") {
@@ -84,20 +95,23 @@ export function useXanaxPredictions() {
       return undefined;
     },
     // 👈 2. ربطنا الوقت المتغير بالـ React Query
-    refetchInterval: pollInterval, 
+    refetchInterval: pollInterval,
+    // ⚠️ منع التحديث المتكرر عند فتح التاب
+    refetchOnWindowFocus: false,
   });
 
   // 👈 3. عقل القناص (Sniper Logic لكندا)
   useEffect(() => {
     if (query.data && query.data.rawCan) {
       const rawCan = query.data.rawCan;
-      const predicted = rawCan.droqs_predicted_restock || rawCan.next_predicted_restock;
+      const predicted =
+        rawCan.droqs_predicted_restock || rawCan.next_predicted_restock;
       const currentQty = rawCan.current_quantity || 0;
       const now = Math.floor(Date.now() / 1000);
 
       if (predicted) {
         const timeDiff = predicted - now;
-        
+
         // إذا الستوك فاضي، والوقت المتبقي 10 دقائق (600 ثانية) أو أقل
         if (currentQty === 0 && timeDiff <= 600) {
           if (pollInterval !== 2000) {
@@ -121,14 +135,32 @@ export function useXanaxPredictions() {
       const currentJpRestock = query.data.rawJapan?.last_restock_time;
       const currentCanRestock = query.data.rawCan?.last_restock_time;
 
-      if (prevRestockUK.current && currentUkRestock > prevRestockUK.current && settings.stockDrop) {
-        sendNotification("Habibi! Stock Alert 🇬🇧", { body: "Yala habibi yala! Xanax is dropped in UK! Hurry up!" });
+      if (
+        prevRestockUK.current &&
+        currentUkRestock > prevRestockUK.current &&
+        settings.stockDrop
+      ) {
+        sendNotification("Habibi! Stock Alert 🇬🇧", {
+          body: "Yala habibi yala! Xanax is dropped in UK! Hurry up!",
+        });
       }
-      if (prevRestockJP.current && currentJpRestock > prevRestockJP.current && settings.stockDrop) {
-        sendNotification("Habibi! Stock Alert 🇯🇵", { body: "Yala habibi yala! Xanax is dropped in Japan! Go grab it!" });
+      if (
+        prevRestockJP.current &&
+        currentJpRestock > prevRestockJP.current &&
+        settings.stockDrop
+      ) {
+        sendNotification("Habibi! Stock Alert 🇯🇵", {
+          body: "Yala habibi yala! Xanax is dropped in Japan! Go grab it!",
+        });
       }
-      if (prevRestockCAN.current && currentCanRestock > prevRestockCAN.current && settings.stockDrop) {
-        sendNotification("Habibi! Stock Alert 🇨🇦", { body: "Yala habibi yala! Xanax is dropped in Canada! Don't miss out!" });
+      if (
+        prevRestockCAN.current &&
+        currentCanRestock > prevRestockCAN.current &&
+        settings.stockDrop
+      ) {
+        sendNotification("Habibi! Stock Alert 🇨🇦", {
+          body: "Yala habibi yala! Xanax is dropped in Canada! Don't miss out!",
+        });
       }
 
       prevRestockUK.current = currentUkRestock;
