@@ -9,11 +9,11 @@ const redis = new Redis({
 export async function GET() {
   try {
     const data = await redis.get("hidden_items_tracker_v1");
-    
+
     return NextResponse.json({
       success: true,
       message: "Here is your tracked data, Habibi!",
-      data: data || {}
+      data: data || {},
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
